@@ -15,6 +15,8 @@ type TestDocument struct {
 }
 
 func Test_LuceneIndex_Search(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		docs         []TestDocument
