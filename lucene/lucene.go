@@ -92,8 +92,8 @@ func (l *LuceneIndex) Add(doc_id, data string) error {
 	return nil
 }
 
-func (l *LuceneIndex) Search(query string, k1, b float64, total int) []*LuceneQueryDocument {
-	terms := l.extractTerms(query)
+func (l *LuceneIndex) Search(query *LuceneQuery) []*LuceneQueryDocument {
+	terms := l.extractTerms(query.Query)
 	scores := make(map[string]float64)
 	n := float64(len(l.docs))
 
@@ -107,11 +107,7 @@ func (l *LuceneIndex) Search(query string, k1, b float64, total int) []*LuceneQu
 		idf := math.Log((n-df+0.5)/(df+0.5) + 1.0)
 
 		for _, posting := range postings {
-			dl := float64(l.doc_length[posting.DocumentID])
-
-			numerator := float64(posting.Count) * (k1 + 1.0)
-			denominator := float64(posting.Count) + k1*(1.0-b+b*dl/float64(l.avg_doc_length))
-			scores[posting.DocumentID] += idf * (numerator / denominator)
+			scores[posting.DocumentID] += query.ScoreFuncion.Score(posting.Count, l.doc_length[posting.DocumentID], l.avg_doc_length, idf)
 		}
 	}
 
@@ -127,6 +123,7 @@ func (l *LuceneIndex) Search(query string, k1, b float64, total int) []*LuceneQu
 		return foundDocs[i].Score > foundDocs[j].Score
 	})
 
+	total := query.Total
 	if total > len(foundDocs) {
 		total = len(foundDocs)
 	}

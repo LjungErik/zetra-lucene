@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/LjungErik/zetra-lucene/lucene"
+	"github.com/LjungErik/zetra-lucene/lucene/score"
 )
 
 type TestDocument struct {
@@ -17,18 +18,22 @@ func Test_LuceneIndex_Search(t *testing.T) {
 	tests := []struct {
 		name         string
 		docs         []TestDocument
-		query        string
+		query        *lucene.LuceneQuery
 		total        int
 		k1           float64
 		b            float64
 		expectedDocs []TestDocument
 	}{
 		{
-			name:  "test simple query",
-			query: "How many bones are there in a fish?",
-			total: 10,
-			k1:    1.5,
-			b:     0.75,
+			name: "test simple query",
+			query: &lucene.LuceneQuery{
+				Query: "How many bones are there in a fish?",
+				Total: 10,
+				ScoreFuncion: &score.BM25Scoring{
+					K1: 1.5,
+					B:  0.75,
+				},
+			},
 			docs: []TestDocument{
 				{
 					DocumentID: "doc-1",
@@ -55,11 +60,15 @@ func Test_LuceneIndex_Search(t *testing.T) {
 			},
 		},
 		{
-			name:  "test query with multiple matches",
-			query: "Are fish good at flying?",
-			total: 2,
-			k1:    1.5,
-			b:     0.75,
+			name: "test query with multiple matches",
+			query: &lucene.LuceneQuery{
+				Query: "Are fish good at flying?",
+				Total: 2,
+				ScoreFuncion: &score.BM25Scoring{
+					K1: 1.5,
+					B:  0.75,
+				},
+			},
 			docs: []TestDocument{
 				{
 					DocumentID: "doc-1",
@@ -106,7 +115,7 @@ func Test_LuceneIndex_Search(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			docs := index.Search(test.query, test.k1, test.b, test.total)
+			docs := index.Search(test.query)
 			assert.Equal(t, len(test.expectedDocs), len(docs))
 
 			for i, doc := range docs {
