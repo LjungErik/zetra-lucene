@@ -13,28 +13,33 @@ func Test_LowercaseFilter(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		token    tokenizer.Token
+		token    []tokenizer.Token
 		expected []tokenizer.Token
 	}{
 		{
 			name:     "lowercase already",
-			token:    tokenizer.Token{Text: "testing", Position: 1},
+			token:    []tokenizer.Token{{Text: "testing", Position: 1}},
 			expected: []tokenizer.Token{{Text: "testing", Position: 1}},
 		},
 		{
 			name:     "capitilized",
-			token:    tokenizer.Token{Text: "Testing", Position: 2},
+			token:    []tokenizer.Token{{Text: "Testing", Position: 2}},
 			expected: []tokenizer.Token{{Text: "testing", Position: 2}},
 		},
 		{
 			name:     "all capitilized",
-			token:    tokenizer.Token{Text: "FIRING", Position: 3},
+			token:    []tokenizer.Token{{Text: "FIRING", Position: 3}},
 			expected: []tokenizer.Token{{Text: "firing", Position: 3}},
 		},
 		{
 			name:     "mixed with special characters",
-			token:    tokenizer.Token{Text: "Filter, this if YOU caN", Position: 4},
+			token:    []tokenizer.Token{{Text: "Filter, this if YOU caN", Position: 4}},
 			expected: []tokenizer.Token{{Text: "filter, this if you can", Position: 4}},
+		},
+		{
+			name:     "empty input",
+			token:    []tokenizer.Token{},
+			expected: []tokenizer.Token{},
 		},
 	}
 
@@ -42,7 +47,7 @@ func Test_LowercaseFilter(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			f := &filter.LowercaseFilter{}
+			f := filter.NewLowercaseFilter()
 			actual := f.Apply(test.token)
 
 			assert.Equal(t, test.expected, actual)

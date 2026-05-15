@@ -8,22 +8,26 @@ type StopWordFilter struct {
 
 var _ Filter = (*StopWordFilter)(nil)
 
-func (f *StopWordFilter) Apply(token tokenizer.Token) []tokenizer.Token {
-	if f.stopWords[token.Text] {
-		return nil
+func (f *StopWordFilter) Apply(tokens []tokenizer.Token) []tokenizer.Token {
+	n := 0
+	for _, token := range tokens {
+		if _, ok := f.stopWords[token.Text]; !ok {
+			tokens[n] = token
+			n++
+		}
 	}
 
-	return []tokenizer.Token{token}
+	return tokens[:n]
 }
 
-func NewENStopWordFilter() *StopWordFilter {
+func NewStopWordFilter(stopWords map[string]bool) *StopWordFilter {
 	return &StopWordFilter{
-		stopWords: en_stopWords,
+		stopWords: stopWords,
 	}
 }
 
 var (
-	en_stopWords = map[string]bool{
+	EnglishStopWords = map[string]bool{
 		"i":          true,
 		"me":         true,
 		"my":         true,

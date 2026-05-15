@@ -10,6 +10,14 @@ type LowercaseFilter struct{}
 
 var _ Filter = (*LowercaseFilter)(nil)
 
-func (f *LowercaseFilter) Apply(token tokenizer.Token) []tokenizer.Token {
-	return []tokenizer.Token{{Text: strings.ToLower(token.Text), Position: token.Position}}
+func NewLowercaseFilter() *LowercaseFilter {
+	return &LowercaseFilter{}
+}
+
+func (f *LowercaseFilter) Apply(tokens []tokenizer.Token) []tokenizer.Token {
+	for i, token := range tokens {
+		tokens[i].Text = strings.ToLower(token.Text)
+	}
+
+	return tokens
 }
