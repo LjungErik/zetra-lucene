@@ -42,7 +42,7 @@ func NewEnglishLanguageAnalyzer() Analyzer {
 				filter.NewLowercaseFilter(),
 				filter.NewStopWordFilter(filter.EnglishStopWords),
 				filter.NewPatternReplaceFilter(regexp.MustCompile(`[\(\)]`), ""),
-				filter.NewPatternReplaceFilter(regexp.MustCompile(`[!@#$%^&*]`), ""),
+				filter.NewPatternReplaceFilter(regexp.MustCompile(`[!@#$%^&*?]`), ""),
 				filter.NewTrimFilter(),
 			},
 		},
