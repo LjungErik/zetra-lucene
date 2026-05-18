@@ -1,14 +1,13 @@
-package reader
+package storage
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/LjungErik/zetra-lucene/lucene/storage"
+	"github.com/LjungErik/zetra-lucene/lucene/utils"
 )
 
 const (
@@ -23,23 +22,34 @@ type DirectoryReader interface {
 }
 
 type StandardDirectoryReader struct {
-	segments *storage.Segments
+	segments *Segments
+	readers  []*SegmentReader
 }
 
 var _ DirectoryReader = (*StandardDirectoryReader)(nil)
 
-func Open(directory string) (*StandardDirectoryReader, error) {
+func OpenStandrardDirectoryReader(directory string) (*StandardDirectoryReader, error) {
 	segments, err := getNewestSegmentsMetadata(directory)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create the individual readers for reading each segment
+	readers := make([]*SegmentReader, len(segments.Segments))
+	for i, seg := range segments.Segments {
+		readers[i], err = OpenSegmentReader(seg, directory)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &StandardDirectoryReader{
 		segments: segments,
+		readers:  readers,
 	}, nil
 }
 
-func getNewestSegmentsMetadata(directory string) (*storage.Segments, error) {
+func getNewestSegmentsMetadata(directory string) (*Segments, error) {
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, err
@@ -70,24 +80,11 @@ func getNewestSegmentsMetadata(directory string) (*storage.Segments, error) {
 		return nil, ErrSegmentMetadataNotFound
 	}
 
-	var metadata = &storage.Segments{}
+	var metadata = &Segments{}
 	path := filepath.Join(directory, latestFile)
-	if err := readJsonFile(path, metadata); err != nil {
+	if err := utils.ReadJsonFile(path, metadata); err != nil {
 		return nil, err
 	}
 
 	return metadata, nil
-}
-
-func readJsonFile(filename string, v any) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-
-	if err = json.NewDecoder(f).Decode(v); err != nil {
-		return err
-	}
-
-	return nil
 }
