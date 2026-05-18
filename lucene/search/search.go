@@ -4,7 +4,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/score"
 	"github.com/LjungErik/zetra-lucene/lucene/storage"
 )
@@ -15,7 +15,7 @@ type Document struct {
 }
 
 type Query struct {
-	Query         []tokenizer.Token
+	Query         []analysis.Token
 	Limit         int
 	ScoreFunction *score.BM25Scoring
 }

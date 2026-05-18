@@ -3,6 +3,7 @@ package tokenizer_test
 import (
 	"testing"
 
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,13 +15,13 @@ func Test_Delimiter(t *testing.T) {
 		name      string
 		text      string
 		delimiter string
-		expected  []tokenizer.Token
+		expected  []analysis.Token
 	}{
 		{
 			name:      "phase with single comma",
 			text:      "I am just testing this phrase, and having a new phase after.",
 			delimiter: ",",
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "I am just testing this phrase", Position: 0},
 				{Text: "and having a new phase after.", Position: 1},
 			},
@@ -29,7 +30,7 @@ func Test_Delimiter(t *testing.T) {
 			name:      "phase with multiple comma",
 			text:      "Mix the eggs, butter, sugar, and flour in a bowl.",
 			delimiter: ",",
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "Mix the eggs", Position: 0},
 				{Text: "butter", Position: 1},
 				{Text: "sugar", Position: 2},
@@ -40,7 +41,7 @@ func Test_Delimiter(t *testing.T) {
 			name:      "phase with dots",
 			text:      "I wonder... will this work...\nor maybe not.",
 			delimiter: ".",
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "I wonder", Position: 0},
 				{Text: "will this work", Position: 1},
 				{Text: "or maybe not", Position: 2},

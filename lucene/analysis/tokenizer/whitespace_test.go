@@ -3,6 +3,7 @@ package tokenizer_test
 import (
 	"testing"
 
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,12 +14,12 @@ func Test_Whitespace(t *testing.T) {
 	tests := []struct {
 		name     string
 		text     string
-		expected []tokenizer.Token
+		expected []analysis.Token
 	}{
 		{
 			name: "phase with only space",
 			text: "I am just testing this phrase",
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "I", Position: 0},
 				{Text: "am", Position: 1},
 				{Text: "just", Position: 2},
@@ -30,7 +31,7 @@ func Test_Whitespace(t *testing.T) {
 		{
 			name: "phase with space, newline and tab",
 			text: "I am\r\r\njust testing\nthis phrase\t and this as well.",
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "I", Position: 0},
 				{Text: "am", Position: 1},
 				{Text: "just", Position: 2},

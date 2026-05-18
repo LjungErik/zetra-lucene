@@ -3,7 +3,7 @@ package filter
 import (
 	"regexp"
 
-	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 )
 
 type PatternReplaceFilter struct {
@@ -20,7 +20,7 @@ func NewPatternReplaceFilter(pattern *regexp.Regexp, replacement string) *Patter
 	}
 }
 
-func (f *PatternReplaceFilter) Apply(tokens []tokenizer.Token) []tokenizer.Token {
+func (f *PatternReplaceFilter) Apply(tokens []analysis.Token) []analysis.Token {
 	for i := range tokens {
 		tokens[i].Text = f.pattern.ReplaceAllString(tokens[i].Text, f.replacement)
 	}

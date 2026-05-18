@@ -1,10 +1,7 @@
 package tokenizer
 
-type Token struct {
-	Text     string
-	Position int
-}
+import "github.com/LjungErik/zetra-lucene/lucene/analysis"
 
 type Tokenizer interface {
-	Tokenize(string) []Token
+	Tokenize(string) []analysis.Token
 }

@@ -3,8 +3,8 @@ package filter_test
 import (
 	"testing"
 
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/filter"
-	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,48 +14,48 @@ func Test_CompositeFilter(t *testing.T) {
 	tests := []struct {
 		name     string
 		filter   *filter.CompositeFilter
-		token    []tokenizer.Token
-		expected []tokenizer.Token
+		token    []analysis.Token
+		expected []analysis.Token
 	}{
 		{
 			name: "lowercase already",
 			filter: &filter.CompositeFilter{
 				Filters: []filter.Filter{filter.NewLowercaseFilter()},
 			},
-			token:    []tokenizer.Token{{Text: "TeStiNg", Position: 1}, {Text: "AgaiN", Position: 12}},
-			expected: []tokenizer.Token{{Text: "testing", Position: 1}, {Text: "again", Position: 12}},
+			token:    []analysis.Token{{Text: "TeStiNg", Position: 1}, {Text: "AgaiN", Position: 12}},
+			expected: []analysis.Token{{Text: "testing", Position: 1}, {Text: "again", Position: 12}},
 		},
 		{
 			name: "capitilized with stop words filter",
 			filter: &filter.CompositeFilter{
 				Filters: []filter.Filter{filter.NewLowercaseFilter(), filter.NewStopWordFilter(filter.EnglishStopWords)},
 			},
-			token:    []tokenizer.Token{{Text: "Testing", Position: 2}, {Text: "IN", Position: 4}, {Text: "A", Position: 3}},
-			expected: []tokenizer.Token{{Text: "testing", Position: 2}},
+			token:    []analysis.Token{{Text: "Testing", Position: 2}, {Text: "IN", Position: 4}, {Text: "A", Position: 3}},
+			expected: []analysis.Token{{Text: "testing", Position: 2}},
 		},
 		{
 			name: "all capitilized without stop words filter",
 			filter: &filter.CompositeFilter{
 				Filters: []filter.Filter{filter.NewLowercaseFilter()},
 			},
-			token:    []tokenizer.Token{{Text: "FIRING", Position: 3}, {Text: "IN", Position: 4}, {Text: "A", Position: 3}},
-			expected: []tokenizer.Token{{Text: "firing", Position: 3}, {Text: "in", Position: 4}, {Text: "a", Position: 3}},
+			token:    []analysis.Token{{Text: "FIRING", Position: 3}, {Text: "IN", Position: 4}, {Text: "A", Position: 3}},
+			expected: []analysis.Token{{Text: "firing", Position: 3}, {Text: "in", Position: 4}, {Text: "a", Position: 3}},
 		},
 		{
 			name: "Only stop words filter",
 			filter: &filter.CompositeFilter{
 				Filters: []filter.Filter{filter.NewStopWordFilter(filter.EnglishStopWords)},
 			},
-			token:    []tokenizer.Token{{Text: "FIRING in a HOUSE", Position: 5}, {Text: "in", Position: 4}, {Text: "a", Position: 3}},
-			expected: []tokenizer.Token{{Text: "FIRING in a HOUSE", Position: 5}},
+			token:    []analysis.Token{{Text: "FIRING in a HOUSE", Position: 5}, {Text: "in", Position: 4}, {Text: "a", Position: 3}},
+			expected: []analysis.Token{{Text: "FIRING in a HOUSE", Position: 5}},
 		},
 		{
 			name: "empty input",
 			filter: &filter.CompositeFilter{
 				Filters: []filter.Filter{filter.NewLowercaseFilter(), filter.NewStopWordFilter(filter.EnglishStopWords)},
 			},
-			token:    []tokenizer.Token{},
-			expected: []tokenizer.Token{},
+			token:    []analysis.Token{},
+			expected: []analysis.Token{},
 		},
 	}
 

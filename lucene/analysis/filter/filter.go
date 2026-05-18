@@ -1,7 +1,7 @@
 package filter
 
-import "github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
+import "github.com/LjungErik/zetra-lucene/lucene/analysis"
 
 type Filter interface {
-	Apply([]tokenizer.Token) []tokenizer.Token
+	Apply([]analysis.Token) []analysis.Token
 }

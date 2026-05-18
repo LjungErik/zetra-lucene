@@ -3,6 +3,7 @@ package tokenizer_test
 import (
 	"testing"
 
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +15,7 @@ func Test_Composite(t *testing.T) {
 		name      string
 		text      string
 		tokenizer *tokenizer.CompositeTokenizer
-		expected  []tokenizer.Token
+		expected  []analysis.Token
 	}{
 		{
 			name: "phase with space and dots",
@@ -25,7 +26,7 @@ func Test_Composite(t *testing.T) {
 					&tokenizer.DelimiterTokenizer{Delimiter: "."},
 				},
 			},
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "I", Position: 0},
 				{Text: "am", Position: 1},
 				{Text: "just", Position: 2},
@@ -51,7 +52,7 @@ func Test_Composite(t *testing.T) {
 					&tokenizer.DelimiterTokenizer{Delimiter: "-"},
 				},
 			},
-			expected: []tokenizer.Token{
+			expected: []analysis.Token{
 				{Text: "I", Position: 0},
 				{Text: "am", Position: 1},
 				{Text: "just", Position: 2},

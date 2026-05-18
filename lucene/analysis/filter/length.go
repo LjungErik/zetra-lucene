@@ -1,8 +1,6 @@
 package filter
 
-import (
-	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
-)
+import "github.com/LjungErik/zetra-lucene/lucene/analysis"
 
 type LengthFilter struct {
 	min int
@@ -18,7 +16,7 @@ func NewLengthFilter(min, max int) *LengthFilter {
 	}
 }
 
-func (f *LengthFilter) Apply(tokens []tokenizer.Token) []tokenizer.Token {
+func (f *LengthFilter) Apply(tokens []analysis.Token) []analysis.Token {
 	n := 0
 	for _, token := range tokens {
 		if len(token.Text) >= f.min && len(token.Text) <= f.max {

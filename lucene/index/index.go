@@ -1,14 +1,14 @@
 package index
 
 import (
-	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/storage"
 )
 
 type Document struct {
 	DocumentID string
 	Data       string
-	Tokens     []tokenizer.Token
+	Tokens     []analysis.Token
 }
 
 type Indexer interface {

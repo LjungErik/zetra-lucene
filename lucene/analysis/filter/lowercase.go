@@ -3,7 +3,7 @@ package filter
 import (
 	"strings"
 
-	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 )
 
 type LowercaseFilter struct{}
@@ -14,7 +14,7 @@ func NewLowercaseFilter() *LowercaseFilter {
 	return &LowercaseFilter{}
 }
 
-func (f *LowercaseFilter) Apply(tokens []tokenizer.Token) []tokenizer.Token {
+func (f *LowercaseFilter) Apply(tokens []analysis.Token) []analysis.Token {
 	for i, token := range tokens {
 		tokens[i].Text = strings.ToLower(token.Text)
 	}

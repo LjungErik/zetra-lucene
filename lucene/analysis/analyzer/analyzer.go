@@ -3,12 +3,13 @@ package analyzer
 import (
 	"regexp"
 
+	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/filter"
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
 )
 
 type Analyzer interface {
-	Analyze(data string) []tokenizer.Token
+	Analyze(data string) []analysis.Token
 }
 
 type DefaultAnalyzer struct {
@@ -18,7 +19,7 @@ type DefaultAnalyzer struct {
 
 var _ Analyzer = (*DefaultAnalyzer)(nil)
 
-func (a *DefaultAnalyzer) Analyze(data string) []tokenizer.Token {
+func (a *DefaultAnalyzer) Analyze(data string) []analysis.Token {
 	tokens := a.tokenizer.Tokenize(data)
 	tokens = a.filter.Apply(tokens)
 

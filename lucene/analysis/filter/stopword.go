@@ -1,6 +1,6 @@
 package filter
 
-import "github.com/LjungErik/zetra-lucene/lucene/analysis/tokenizer"
+import "github.com/LjungErik/zetra-lucene/lucene/analysis"
 
 type StopWordFilter struct {
 	stopWords map[string]bool
@@ -8,7 +8,7 @@ type StopWordFilter struct {
 
 var _ Filter = (*StopWordFilter)(nil)
 
-func (f *StopWordFilter) Apply(tokens []tokenizer.Token) []tokenizer.Token {
+func (f *StopWordFilter) Apply(tokens []analysis.Token) []analysis.Token {
 	n := 0
 	for _, token := range tokens {
 		if _, ok := f.stopWords[token.Text]; !ok {
