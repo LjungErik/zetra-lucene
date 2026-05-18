@@ -1,0 +1,58 @@
+package writer
+
+import (
+	"errors"
+
+	"github.com/LjungErik/zetra-lucene/lucene/analysis/analyzer"
+	"github.com/LjungErik/zetra-lucene/lucene/document"
+	"github.com/LjungErik/zetra-lucene/lucene/utils"
+)
+
+var (
+	ErrUnsupportedFieldType = errors.New("unsupported field type")
+)
+
+type DocumentWriter struct {
+	stored   *StoredWriter
+	term     *TermWriter
+	counter  *utils.Counter
+	analyzer *analyzer.PerFieldAnalyzer
+}
+
+func NewDocumentWriter(analyzer *analyzer.PerFieldAnalyzer) *DocumentWriter {
+	return &DocumentWriter{
+		stored:   &StoredWriter{},
+		term:     &TermWriter{},
+		counter:  &utils.Counter{},
+		analyzer: analyzer,
+	}
+}
+
+func (w *DocumentWriter) addDocuments(docs []document.IndexableDocument) error {
+	for _, doc := range docs {
+		docId := w.counter.GetNextID()
+
+		for field := range doc.Iter() {
+			if field.Indexable() {
+				switch field.Type() {
+
+				case document.Text:
+					tokens := w.analyzer.Get(field.Name()).Analyze(field.ValueAsString())
+					w.term.write(docId, field.Name(), tokens)
+
+				default:
+					return ErrUnsupportedFieldType
+
+				}
+			}
+
+			if field.Stored() {
+				w.stored.write(docId, field)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (w *DocumentWriter) flush()
