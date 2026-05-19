@@ -2,9 +2,11 @@ package writer
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/analyzer"
 	"github.com/LjungErik/zetra-lucene/lucene/document"
+	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/utils"
 )
 
@@ -55,4 +57,21 @@ func (w *DocumentWriter) addDocuments(docs []document.IndexableDocument) error {
 	return nil
 }
 
-func (w *DocumentWriter) flush()
+func (w *DocumentWriter) flush(sws *index.SegementWriteState) error {
+	var bytesWritten int64 = 0
+	n, err := w.term.flush(sws)
+	if err != nil {
+		return err
+	}
+	bytesWritten += n
+
+	n, err = w.stored.flush(sws)
+	if err != nil {
+		return err
+	}
+	bytesWritten += n
+
+	fmt.Printf("Written %d bytes\n", bytesWritten)
+
+	return nil
+}
