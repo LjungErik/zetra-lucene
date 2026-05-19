@@ -17,6 +17,7 @@ var (
 type DocumentWriter struct {
 	stored   *StoredWriter
 	term     *TermWriter
+	stats    *StatisticsTermWriter
 	counter  *utils.Counter
 	analyzer *analyzer.PerFieldAnalyzer
 }
@@ -25,6 +26,7 @@ func NewDocumentWriter(analyzer *analyzer.PerFieldAnalyzer) *DocumentWriter {
 	return &DocumentWriter{
 		stored:   &StoredWriter{},
 		term:     &TermWriter{},
+		stats:    &StatisticsTermWriter{},
 		counter:  &utils.Counter{},
 		analyzer: analyzer,
 	}
@@ -41,6 +43,8 @@ func (w *DocumentWriter) addDocuments(docs []document.IndexableDocument) error {
 				case document.Text:
 					tokens := w.analyzer.Get(field.Name()).Analyze(field.ValueAsString())
 					w.term.write(docId, field.Name(), tokens)
+
+					w.stats.write(docId, field.Name(), field.ValueLength())
 
 				default:
 					return ErrUnsupportedFieldType

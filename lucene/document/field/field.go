@@ -67,3 +67,7 @@ func (f *Field) Indexable() bool {
 func (f *Field) ValueAsString() string {
 	return f.value
 }
+
+func (f *Field) ValueLength() int {
+	return len(f.value)
+}

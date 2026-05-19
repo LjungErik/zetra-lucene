@@ -8,10 +8,6 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/index"
 )
 
-const (
-	termFileExtension = ".term"
-)
-
 type TermWriter struct {
 	fieldsCount map[string]map[string]map[int]int
 }
@@ -37,7 +33,7 @@ func (w *TermWriter) write(docID int, fieldName string, tokens []analysis.Token)
 }
 
 func (w *TermWriter) flush(sws *index.SegementWriteState) (int64, error) {
-	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), termFileExtension)
+	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), index.TERM_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)
 	if err != nil {

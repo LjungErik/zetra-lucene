@@ -6,6 +6,7 @@ type DocumentField interface {
 	Stored() bool
 	Indexable() bool
 	ValueAsString() string
+	ValueLength() int
 }
 
 type DocumentFieldType int

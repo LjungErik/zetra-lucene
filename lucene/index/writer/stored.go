@@ -8,10 +8,6 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/index"
 )
 
-const (
-	storedFileExtension = ".data"
-)
-
 type StoredWriter struct {
 	fieldDocs map[string]map[int]string
 }
@@ -27,7 +23,7 @@ func (w *StoredWriter) write(docId int, field document.DocumentField) {
 }
 
 func (w *StoredWriter) flush(sws *index.SegementWriteState) (int64, error) {
-	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), storedFileExtension)
+	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), index.STORED_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)
 	if err != nil {

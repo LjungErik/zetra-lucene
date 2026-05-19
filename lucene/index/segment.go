@@ -11,7 +11,10 @@ import (
 )
 
 const (
-	SEGMENT_PREFIX = "segments_"
+	SEGMENT_PREFIX         = "segments_"
+	STORED_FILE_EXTENSION  = ".data"
+	TERM_FILE_EXTENSION    = ".term"
+	STATICS_FILE_EXTENSION = ".stcs"
 )
 
 var (
@@ -27,6 +30,11 @@ type Segments struct {
 type SegmentMetadata struct {
 	SegmentName string `json:"segment_name"`
 	SegmentID   int    `json:"segment_id"`
+}
+
+type SegmentDocumentsMetadata struct {
+	DocsLength    map[int]int `json:"docs_length"`
+	AvgDocsLength float64     `json:"avg_docs_length"`
 }
 
 type SegementWriteState struct {
@@ -62,7 +70,7 @@ func (s *Segments) NextSegmentName() string {
 	return fmt.Sprintf("_%d", s.NextSegment)
 }
 
-func (s *Segments) AddNextSegment() string {
+func (s *Segments) FlushNextSegment(dir directory.Directory) error {
 	next := SegmentMetadata{
 		SegmentName: s.NextSegmentName(),
 		SegmentID:   s.NextSegment,
@@ -72,7 +80,18 @@ func (s *Segments) AddNextSegment() string {
 	s.SegmentCount += 1
 	s.Segments = append(s.Segments, next)
 
-	return next.SegmentName
+	filename := fmt.Sprintf("%s%d", SEGMENT_PREFIX, next.SegmentID)
+
+	out, err := dir.OpenOutputStream(filename)
+	if err != nil {
+		return err
+	}
+
+	if err = json.NewEncoder(out).Encode(s); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getNewestSegmentsMetadata(dir directory.Directory) (*Segments, error) {
@@ -90,7 +109,7 @@ func getNewestSegmentsMetadata(dir directory.Directory) (*Segments, error) {
 			continue
 		}
 
-		genStr := strings.TrimPrefix(name, "segments_")
+		genStr := strings.TrimPrefix(name, SEGMENT_PREFIX)
 		gen, err := strconv.ParseInt(genStr, 10, 64)
 		if err != nil {
 			continue

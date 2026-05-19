@@ -27,11 +27,20 @@ func (w *IndexWriter) AddDocument(doc document.IndexableDocument) {
 }
 
 func (w *IndexWriter) Flush() error {
-	// Create SegmentWriteState
 	state, err := index.CreateNewSegmentWriteState(w.directory)
 	if err != nil {
 		return err
 	}
 
-	return w.writer.flush(state)
+	err = w.writer.flush(state)
+	if err != nil {
+		return err
+	}
+
+	err = state.Segments.FlushNextSegment(w.directory)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
