@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"math"
 	"path/filepath"
 	"sort"
 
@@ -86,14 +85,13 @@ func (r *SegmentReader) Query(term string, limit int) *SegmentQueryResults {
 		return nil
 	}
 
-	df := float64(len(postings))
-	idf := math.Log((float64(n)-df+0.5)/(df+0.5) + 0.1)
+	scorer := r.scoring.GetScorer(n, len(postings), avgDocsLength)
 
 	scores := make(map[string]float64, len(postings))
 
 	for _, posting := range postings {
 		docLength := r.docs_metadata.DocsLength[posting.DocumentID]
-		scores[posting.DocumentID] += r.scoring.Score(n, docLength, avgDocsLength, idf)
+		scores[posting.DocumentID] += scorer(docLength)
 	}
 
 	docs := make([]SegmentDocument, 0, len(postings))

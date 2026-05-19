@@ -75,6 +75,12 @@ func (w *DocumentWriter) flush(sws *index.SegementWriteState) error {
 	}
 	bytesWritten += n
 
+	n, err = w.stats.flush(sws)
+	if err != nil {
+		return err
+	}
+	bytesWritten += n
+
 	fmt.Printf("Written %d bytes\n", bytesWritten)
 
 	return nil

@@ -3,6 +3,7 @@ package writer
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/LjungErik/zetra-lucene/lucene/analysis"
 	"github.com/LjungErik/zetra-lucene/lucene/index"
@@ -41,7 +42,28 @@ func (w *TermWriter) flush(sws *index.SegementWriteState) (int64, error) {
 	}
 	defer s.Close()
 
-	err = json.NewEncoder(s).Encode(w.fieldsCount)
+	fieldIndex := make(map[string]map[string][]index.TermCount, len(w.fieldsCount))
+
+	for k, m := range w.fieldsCount {
+		fieldIndex[k] = make(map[string][]index.TermCount, len(w.fieldsCount[k]))
+		for text, counts := range m {
+			termCounts := make([]index.TermCount, 0, len(counts))
+			for docId, count := range counts {
+				termCounts = append(termCounts, index.TermCount{
+					DocumentID: docId,
+					Count:      count,
+				})
+			}
+
+			sort.SliceStable(termCounts, func(i, j int) bool {
+				return termCounts[i].DocumentID < termCounts[j].DocumentID
+			})
+
+			fieldIndex[k][text] = termCounts
+		}
+	}
+
+	err = json.NewEncoder(s).Encode(fieldIndex)
 	if err != nil {
 		return 0, err
 	}

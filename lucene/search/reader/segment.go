@@ -5,6 +5,7 @@ import (
 
 	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
+	"github.com/LjungErik/zetra-lucene/lucene/search"
 	"github.com/LjungErik/zetra-lucene/lucene/utils"
 )
 
@@ -12,8 +13,10 @@ type SegmentReader struct {
 	metadata     index.SegmentMetadata
 	index        map[string]map[string][]index.TermCount
 	docs         map[string]map[int]string
-	docsMetadata *index.SegmentDocumentsMetadata
+	docsMetadata map[string]*index.SegmentDocumentsMetadata
 }
+
+var _ search.SearchContext = (*SegmentReader)(nil)
 
 func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) (*SegmentReader, error) {
 	var (
@@ -39,4 +42,25 @@ func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) 
 	}
 
 	return r, nil
+}
+
+func (s *SegmentReader) GetStatistic(fieldName string) search.SearchStatistics {
+	stat := search.SearchStatistics{}
+
+	stat.AverageDataLength = s.docsMetadata[fieldName].AvgDocsLength
+	stat.DocumentCount = len(s.docs[fieldName])
+
+	return stat
+}
+
+func (s *SegmentReader) GetTermCounts(fieldName, term string) []index.TermCount {
+	return s.index[fieldName][term]
+}
+
+func (s *SegmentReader) GetDocLength(fieldName string, docId int) int {
+	return s.docsMetadata[fieldName].DocsLength[docId]
+}
+
+func (s *SegmentReader) GetSegmentID() int {
+	return s.metadata.SegmentID
 }
