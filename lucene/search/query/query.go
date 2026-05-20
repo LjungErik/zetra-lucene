@@ -1,7 +1,10 @@
 package query
 
-import "github.com/LjungErik/zetra-lucene/lucene/search"
+import (
+	"github.com/LjungErik/zetra-lucene/lucene/search/context"
+	"github.com/LjungErik/zetra-lucene/lucene/search/document"
+)
 
 type Query interface {
-	Execute(context search.SearchContext) []search.TopDoc
+	Execute(ctx context.SearchContext) []document.TopDoc
 }

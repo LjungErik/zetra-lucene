@@ -1,12 +1,12 @@
 package reader
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
-	"github.com/LjungErik/zetra-lucene/lucene/search"
-	"github.com/LjungErik/zetra-lucene/lucene/utils"
+	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 )
 
 type SegmentReader struct {
@@ -16,7 +16,7 @@ type SegmentReader struct {
 	docsMetadata map[string]*index.SegmentDocumentsMetadata
 }
 
-var _ search.SearchContext = (*SegmentReader)(nil)
+var _ context.SearchContext = (*SegmentReader)(nil)
 
 func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) (*SegmentReader, error) {
 	var (
@@ -29,23 +29,23 @@ func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) 
 		metadata: metadata,
 	}
 
-	if err := utils.ReadJsonFile(indexFilename, &r.index); err != nil {
+	if err := readJson(dir, indexFilename, &r.index); err != nil {
 		return nil, err
 	}
 
-	if err := utils.ReadJsonFile(storedFileName, &r.docs); err != nil {
+	if err := readJson(dir, storedFileName, &r.docs); err != nil {
 		return nil, err
 	}
 
-	if err := utils.ReadJsonFile(statsFilename, &r.docs); err != nil {
+	if err := readJson(dir, statsFilename, &r.docs); err != nil {
 		return nil, err
 	}
 
 	return r, nil
 }
 
-func (s *SegmentReader) GetStatistic(fieldName string) search.SearchStatistics {
-	stat := search.SearchStatistics{}
+func (s *SegmentReader) GetStatistic(fieldName string) context.SearchStatistics {
+	stat := context.SearchStatistics{}
 
 	stat.AverageDataLength = s.docsMetadata[fieldName].AvgDocsLength
 	stat.DocumentCount = len(s.docs[fieldName])
@@ -63,4 +63,17 @@ func (s *SegmentReader) GetDocLength(fieldName string, docId int) int {
 
 func (s *SegmentReader) GetSegmentID() int {
 	return s.metadata.SegmentID
+}
+
+func readJson(dir directory.Directory, filename string, v any) error {
+	s, err := dir.OpenInputStream(filename)
+	if err != nil {
+		return err
+	}
+
+	if err = json.NewDecoder(s).Decode(v); err != nil {
+		return err
+	}
+
+	return nil
 }

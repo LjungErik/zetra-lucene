@@ -1,4 +1,4 @@
-package search
+package context
 
 import "github.com/LjungErik/zetra-lucene/lucene/index"
 

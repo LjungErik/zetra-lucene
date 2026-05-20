@@ -1,4 +1,4 @@
-package search
+package document
 
 type TopDoc struct {
 	Score      float64

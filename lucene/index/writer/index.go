@@ -16,9 +16,10 @@ type IndexWriterConfig struct {
 	analyzer *analyzer.PerFieldAnalyzer
 }
 
-func NewIndexWriter(Directory directory.Directory, config IndexWriterConfig) *IndexWriter {
+func NewIndexWriter(dir directory.Directory, config IndexWriterConfig) *IndexWriter {
 	return &IndexWriter{
-		writer: NewDocumentWriter(config.analyzer),
+		writer:    NewDocumentWriter(config.analyzer),
+		directory: dir,
 	}
 }
 

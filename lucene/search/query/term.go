@@ -2,7 +2,8 @@ package query
 
 import (
 	"github.com/LjungErik/zetra-lucene/lucene/score"
-	"github.com/LjungErik/zetra-lucene/lucene/search"
+	"github.com/LjungErik/zetra-lucene/lucene/search/context"
+	"github.com/LjungErik/zetra-lucene/lucene/search/document"
 )
 
 type TermQuery struct {
@@ -24,22 +25,22 @@ func NewTermQuery(field, term string) *TermQuery {
 	}
 }
 
-func (q *TermQuery) Execute(context search.SearchContext) []search.TopDoc {
-	stats := context.GetStatistic(q.field)
-	postings := context.GetTermCounts(q.field, q.term)
+func (q *TermQuery) Execute(ctx context.SearchContext) []document.TopDoc {
+	stats := ctx.GetStatistic(q.field)
+	postings := ctx.GetTermCounts(q.field, q.term)
 
-	topDocs := make([]search.TopDoc, len(postings))
+	topDocs := make([]document.TopDoc, len(postings))
 
 	scorer := q.scoring.GetScorer(stats.DocumentCount, len(postings), stats.AverageDataLength)
 
 	for i, post := range postings {
-		dl := context.GetDocLength(q.field, post.DocumentID)
+		dl := ctx.GetDocLength(q.field, post.DocumentID)
 		score := scorer(dl)
 
-		topDocs[i] = search.TopDoc{
+		topDocs[i] = document.TopDoc{
 			Score:      score,
 			DocumentId: post.DocumentID,
-			SegmentId:  context.GetSegmentID(),
+			SegmentId:  ctx.GetSegmentID(),
 		}
 	}
 
