@@ -1,8 +1,8 @@
 package query
 
 import (
+	"github.com/LjungErik/zetra-lucene/lucene/search/collector"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
-	"github.com/LjungErik/zetra-lucene/lucene/search/query/collector"
 )
 
 type Query interface {

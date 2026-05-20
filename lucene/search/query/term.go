@@ -1,9 +1,9 @@
 package query
 
 import (
+	"github.com/LjungErik/zetra-lucene/lucene/search/collector"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 	"github.com/LjungErik/zetra-lucene/lucene/search/document"
-	"github.com/LjungErik/zetra-lucene/lucene/search/query/collector"
 )
 
 type TermQuery struct {
@@ -33,7 +33,7 @@ func (q *TermQuery) Execute(ctx context.IndexReaderContext, col collector.TopDoc
 			dl := leaf.GetDocLength(q.field, post.DocumentID)
 			score := scorer(dl, post.Count)
 
-			col.Add(document.TopDoc{
+			col.Add(&document.TopDoc{
 				Score:      score,
 				DocumentId: post.DocumentID,
 				SegmentId:  leaf.GetSegmentID(),

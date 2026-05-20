@@ -12,10 +12,10 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/document/field/textfield"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
 	"github.com/LjungErik/zetra-lucene/lucene/index/writer"
-	"github.com/LjungErik/zetra-lucene/lucene/search"
 	searchdoc "github.com/LjungErik/zetra-lucene/lucene/search/document"
 	"github.com/LjungErik/zetra-lucene/lucene/search/query"
 	"github.com/LjungErik/zetra-lucene/lucene/search/reader"
+	"github.com/LjungErik/zetra-lucene/lucene/search/searcher"
 )
 
 type TestDocument struct {
@@ -113,7 +113,7 @@ func Test_Indexing_and_Search(t *testing.T) {
 			dirReader, err := reader.OpenStandrardDirectoryReader(dir)
 			require.NoError(t, err)
 
-			searcher := search.NewIndexSearcher(dirReader)
+			searcher := searcher.NewIndexSearcher(dirReader)
 
 			topDocs := searcher.Query(test.query, test.total)
 			require.Equal(t, len(test.expectedDocs), len(topDocs))

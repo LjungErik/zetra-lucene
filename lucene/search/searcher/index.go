@@ -1,10 +1,10 @@
-package search
+package searcher
 
 import (
+	"github.com/LjungErik/zetra-lucene/lucene/search/collector"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 	"github.com/LjungErik/zetra-lucene/lucene/search/document"
 	"github.com/LjungErik/zetra-lucene/lucene/search/query"
-	"github.com/LjungErik/zetra-lucene/lucene/search/query/collector"
 	"github.com/LjungErik/zetra-lucene/lucene/search/reader"
 	"github.com/LjungErik/zetra-lucene/lucene/search/score"
 )
@@ -20,7 +20,8 @@ var _ context.IndexReaderContext = (*IndexSearcher)(nil)
 
 func NewIndexSearcher(r reader.DirectoryReader, opts ...Option) *IndexSearcher {
 	s := &IndexSearcher{
-		reader: r,
+		reader:     r,
+		similarity: score.NewBM25Similarity(1.5, 0.75),
 	}
 
 	for _, opt := range opts {
@@ -30,7 +31,7 @@ func NewIndexSearcher(r reader.DirectoryReader, opts ...Option) *IndexSearcher {
 	return s
 }
 
-func (s *IndexSearcher) Query(q query.Query, n int) []document.TopDoc {
+func (s *IndexSearcher) Query(q query.Query, n int) []*document.TopDoc {
 	col := collector.NewTopDocumentScoreCollector(n)
 
 	q.Execute(s, col)
