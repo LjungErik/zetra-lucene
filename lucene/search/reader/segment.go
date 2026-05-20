@@ -16,7 +16,7 @@ type SegmentReader struct {
 	docsMetadata map[string]*index.SegmentDocumentsMetadata
 }
 
-var _ context.SearchContext = (*SegmentReader)(nil)
+var _ context.LeafReaderContext = (*SegmentReader)(nil)
 
 func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) (*SegmentReader, error) {
 	var (
@@ -48,7 +48,7 @@ func (s *SegmentReader) GetStatistic(fieldName string) context.SearchStatistics 
 	stat := context.SearchStatistics{}
 
 	stat.AverageDataLength = s.docsMetadata[fieldName].AvgDocsLength
-	stat.DocumentCount = len(s.docs[fieldName])
+	stat.DocumentCount = s.docsMetadata[fieldName].DocumentCount
 
 	return stat
 }

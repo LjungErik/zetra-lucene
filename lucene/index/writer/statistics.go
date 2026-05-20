@@ -28,6 +28,7 @@ func (w *StatisticsTermWriter) write(docID int, fieldName string, dataLength int
 
 	w.fieldsMetadata[fieldName].DocsLength[docIDStr] = dataLength
 	w.fieldsMetadata[fieldName].AvgDocsLength = (w.fieldsMetadata[fieldName].AvgDocsLength + float64(dataLength)) / float64(len(w.fieldsMetadata[fieldName].DocsLength))
+	w.fieldsMetadata[fieldName].DocumentCount = len(w.fieldsMetadata[fieldName].DocsLength)
 }
 
 func (w *StatisticsTermWriter) flush(sws *index.SegementWriteState) (int64, error) {

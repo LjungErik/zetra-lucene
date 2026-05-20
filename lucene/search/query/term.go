@@ -1,15 +1,14 @@
 package query
 
 import (
-	"github.com/LjungErik/zetra-lucene/lucene/score"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 	"github.com/LjungErik/zetra-lucene/lucene/search/document"
+	"github.com/LjungErik/zetra-lucene/lucene/search/query/collector"
 )
 
 type TermQuery struct {
-	field   string
-	term    string
-	scoring *score.BM25Scoring
+	field string
+	term  string
 }
 
 var _ Query = (*TermQuery)(nil)
@@ -18,31 +17,27 @@ func NewTermQuery(field, term string) *TermQuery {
 	return &TermQuery{
 		field: field,
 		term:  term,
-		scoring: &score.BM25Scoring{
-			K1: 1.5,
-			B:  0.75,
-		},
 	}
 }
 
-func (q *TermQuery) Execute(ctx context.SearchContext) []document.TopDoc {
-	stats := ctx.GetStatistic(q.field)
-	postings := ctx.GetTermCounts(q.field, q.term)
+func (q *TermQuery) Execute(ctx context.IndexReaderContext, col collector.TopDocumentCollector) {
+	similarity := ctx.GetSimilarity()
 
-	topDocs := make([]document.TopDoc, len(postings))
+	for _, leaf := range ctx.GetLeaves() {
+		stats := leaf.GetStatistic(q.field)
+		postings := leaf.GetTermCounts(q.field, q.term)
 
-	scorer := q.scoring.GetScorer(stats.DocumentCount, len(postings), stats.AverageDataLength)
+		scorer := similarity.GetScorer(stats.DocumentCount, len(postings), stats.AverageDataLength)
 
-	for i, post := range postings {
-		dl := ctx.GetDocLength(q.field, post.DocumentID)
-		score := scorer(dl, post.Count)
+		for _, post := range postings {
+			dl := leaf.GetDocLength(q.field, post.DocumentID)
+			score := scorer(dl, post.Count)
 
-		topDocs[i] = document.TopDoc{
-			Score:      score,
-			DocumentId: post.DocumentID,
-			SegmentId:  ctx.GetSegmentID(),
+			col.Add(document.TopDoc{
+				Score:      score,
+				DocumentId: post.DocumentID,
+				SegmentId:  leaf.GetSegmentID(),
+			})
 		}
 	}
-
-	return topDocs
 }

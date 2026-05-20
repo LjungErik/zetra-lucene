@@ -2,12 +2,21 @@ package score
 
 import "math"
 
-type BM25Scoring struct {
+type BM25Similarity struct {
 	K1 float64
 	B  float64
 }
 
-func (s *BM25Scoring) GetScorer(count int, postings int, avgDataLength float64) func(int, int) float64 {
+var _ Similarity = (*BM25Similarity)(nil)
+
+func NewBM25Similarity(k1, b float64) *BM25Similarity {
+	return &BM25Similarity{
+		K1: k1,
+		B:  b,
+	}
+}
+
+func (s *BM25Similarity) GetScorer(count int, postings int, avgDataLength float64) func(int, int) float64 {
 	c := float64(count)
 	df := float64(postings)
 	idf := math.Log(1.0 + (c-df+0.5)/(df+0.5))

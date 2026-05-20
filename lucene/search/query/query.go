@@ -2,9 +2,9 @@ package query
 
 import (
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
-	"github.com/LjungErik/zetra-lucene/lucene/search/document"
+	"github.com/LjungErik/zetra-lucene/lucene/search/query/collector"
 )
 
 type Query interface {
-	Execute(ctx context.SearchContext) []document.TopDoc
+	Execute(context.IndexReaderContext, collector.TopDocumentCollector)
 }
