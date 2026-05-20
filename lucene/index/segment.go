@@ -33,8 +33,8 @@ type SegmentMetadata struct {
 }
 
 type SegmentDocumentsMetadata struct {
-	DocsLength    map[int]int `json:"docs_length"`
-	AvgDocsLength float64     `json:"avg_docs_length"`
+	DocsLength    map[string]int `json:"docs_length"`
+	AvgDocsLength float64        `json:"avg_docs_length"`
 }
 
 type SegementWriteState struct {
@@ -86,6 +86,7 @@ func (s *Segments) FlushNextSegment(dir directory.Directory) error {
 	if err != nil {
 		return err
 	}
+	defer out.Close()
 
 	if err = json.NewEncoder(out).Encode(s); err != nil {
 		return err
@@ -127,6 +128,11 @@ func getNewestSegmentsMetadata(dir directory.Directory) (*Segments, error) {
 
 	var metadata = &Segments{}
 	s, err := dir.OpenInputStream(latestFile)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Close()
+
 	if err := json.NewDecoder(s).Decode(metadata); err != nil {
 		return nil, err
 	}

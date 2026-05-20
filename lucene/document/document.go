@@ -11,14 +11,14 @@ type Document interface {
 }
 
 type IndexableDocument struct {
-	fields list.List
+	fields *list.List
 }
 
 var _ Document = (*IndexableDocument)(nil)
 
 func NewDocument() *IndexableDocument {
 	return &IndexableDocument{
-		fields: *list.New(),
+		fields: list.New(),
 	}
 }
 

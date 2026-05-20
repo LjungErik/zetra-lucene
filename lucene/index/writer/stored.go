@@ -9,17 +9,23 @@ import (
 )
 
 type StoredWriter struct {
-	fieldDocs map[string]map[int]string
+	fieldDocs map[string]map[string]string
 }
 
 func NewStoredWriter() *StoredWriter {
 	return &StoredWriter{
-		fieldDocs: make(map[string]map[int]string),
+		fieldDocs: make(map[string]map[string]string),
 	}
 }
 
-func (w *StoredWriter) write(docId int, field document.DocumentField) {
-	w.fieldDocs[field.Name()][docId] = field.ValueAsString()
+func (w *StoredWriter) write(docID int, field document.DocumentField) {
+	if _, ok := w.fieldDocs[field.Name()]; !ok {
+		w.fieldDocs[field.Name()] = make(map[string]string)
+	}
+
+	docIDStr := fmt.Sprintf("%d", docID)
+
+	w.fieldDocs[field.Name()][docIDStr] = field.ValueAsString()
 }
 
 func (w *StoredWriter) flush(sws *index.SegementWriteState) (int64, error) {

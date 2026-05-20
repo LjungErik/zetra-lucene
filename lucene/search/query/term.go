@@ -35,7 +35,7 @@ func (q *TermQuery) Execute(ctx context.SearchContext) []document.TopDoc {
 
 	for i, post := range postings {
 		dl := ctx.GetDocLength(q.field, post.DocumentID)
-		score := scorer(dl)
+		score := scorer(dl, post.Count)
 
 		topDocs[i] = document.TopDoc{
 			Score:      score,

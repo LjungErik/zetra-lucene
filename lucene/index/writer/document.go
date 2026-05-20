@@ -24,15 +24,15 @@ type DocumentWriter struct {
 
 func NewDocumentWriter(analyzer *analyzer.PerFieldAnalyzer) *DocumentWriter {
 	return &DocumentWriter{
-		stored:   &StoredWriter{},
-		term:     &TermWriter{},
-		stats:    &StatisticsTermWriter{},
-		counter:  &utils.Counter{},
+		stored:   NewStoredWriter(),
+		term:     NewTermWriter(),
+		stats:    NewStatisticsTermWriter(),
+		counter:  utils.NewCounter(),
 		analyzer: analyzer,
 	}
 }
 
-func (w *DocumentWriter) addDocuments(docs []document.IndexableDocument) error {
+func (w *DocumentWriter) addDocuments(docs []*document.IndexableDocument) error {
 	for _, doc := range docs {
 		docId := w.counter.GetNextID()
 

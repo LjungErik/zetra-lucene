@@ -13,18 +13,18 @@ type IndexWriter struct {
 }
 
 type IndexWriterConfig struct {
-	analyzer *analyzer.PerFieldAnalyzer
+	Analyzer *analyzer.PerFieldAnalyzer
 }
 
 func NewIndexWriter(dir directory.Directory, config IndexWriterConfig) *IndexWriter {
 	return &IndexWriter{
-		writer:    NewDocumentWriter(config.analyzer),
+		writer:    NewDocumentWriter(config.Analyzer),
 		directory: dir,
 	}
 }
 
-func (w *IndexWriter) AddDocument(doc document.IndexableDocument) {
-	w.writer.addDocuments([]document.IndexableDocument{doc})
+func (w *IndexWriter) AddDocument(doc *document.IndexableDocument) {
+	w.writer.addDocuments([]*document.IndexableDocument{doc})
 }
 
 func (w *IndexWriter) Flush() error {

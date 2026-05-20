@@ -12,7 +12,7 @@ import (
 type SegmentReader struct {
 	metadata     index.SegmentMetadata
 	index        map[string]map[string][]index.TermCount
-	docs         map[string]map[int]string
+	docs         map[string]map[string]string
 	docsMetadata map[string]*index.SegmentDocumentsMetadata
 }
 
@@ -37,7 +37,7 @@ func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) 
 		return nil, err
 	}
 
-	if err := readJson(dir, statsFilename, &r.docs); err != nil {
+	if err := readJson(dir, statsFilename, &r.docsMetadata); err != nil {
 		return nil, err
 	}
 
@@ -57,8 +57,9 @@ func (s *SegmentReader) GetTermCounts(fieldName, term string) []index.TermCount 
 	return s.index[fieldName][term]
 }
 
-func (s *SegmentReader) GetDocLength(fieldName string, docId int) int {
-	return s.docsMetadata[fieldName].DocsLength[docId]
+func (s *SegmentReader) GetDocLength(fieldName string, docID int) int {
+	docIDStr := fmt.Sprintf("%d", docID)
+	return s.docsMetadata[fieldName].DocsLength[docIDStr]
 }
 
 func (s *SegmentReader) GetSegmentID() int {
@@ -70,6 +71,7 @@ func readJson(dir directory.Directory, filename string, v any) error {
 	if err != nil {
 		return err
 	}
+	defer s.Close()
 
 	if err = json.NewDecoder(s).Decode(v); err != nil {
 		return err

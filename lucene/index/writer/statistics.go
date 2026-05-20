@@ -20,11 +20,13 @@ func NewStatisticsTermWriter() *StatisticsTermWriter {
 func (w *StatisticsTermWriter) write(docID int, fieldName string, dataLength int) {
 	if _, ok := w.fieldsMetadata[fieldName]; !ok {
 		w.fieldsMetadata[fieldName] = &index.SegmentDocumentsMetadata{
-			DocsLength: make(map[int]int),
+			DocsLength: make(map[string]int),
 		}
 	}
 
-	w.fieldsMetadata[fieldName].DocsLength[docID] = dataLength
+	docIDStr := fmt.Sprintf("%d", docID)
+
+	w.fieldsMetadata[fieldName].DocsLength[docIDStr] = dataLength
 	w.fieldsMetadata[fieldName].AvgDocsLength = (w.fieldsMetadata[fieldName].AvgDocsLength + float64(dataLength)) / float64(len(w.fieldsMetadata[fieldName].DocsLength))
 }
 
