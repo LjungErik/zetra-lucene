@@ -11,10 +11,10 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/document"
 	"github.com/LjungErik/zetra-lucene/lucene/document/field/textfield"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
+	"github.com/LjungErik/zetra-lucene/lucene/index/reader"
 	"github.com/LjungErik/zetra-lucene/lucene/index/writer"
 	searchdoc "github.com/LjungErik/zetra-lucene/lucene/search/document"
 	"github.com/LjungErik/zetra-lucene/lucene/search/query"
-	"github.com/LjungErik/zetra-lucene/lucene/search/reader"
 	"github.com/LjungErik/zetra-lucene/lucene/search/searcher"
 )
 

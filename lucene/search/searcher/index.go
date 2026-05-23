@@ -1,11 +1,11 @@
 package searcher
 
 import (
+	"github.com/LjungErik/zetra-lucene/lucene/index/reader"
 	"github.com/LjungErik/zetra-lucene/lucene/search/collector"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 	"github.com/LjungErik/zetra-lucene/lucene/search/document"
 	"github.com/LjungErik/zetra-lucene/lucene/search/query"
-	"github.com/LjungErik/zetra-lucene/lucene/search/reader"
 	"github.com/LjungErik/zetra-lucene/lucene/search/score"
 )
 
