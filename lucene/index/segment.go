@@ -34,7 +34,7 @@ type SegmentMetadata struct {
 
 type SegmentDocumentsMetadata struct {
 	DocsLength    map[string]int `json:"docs_length"`
-	DocumentCount int            `json:"docs_count`
+	DocumentCount int            `json:"docs_count"`
 	AvgDocsLength float64        `json:"avg_docs_length"`
 }
 
