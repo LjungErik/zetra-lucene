@@ -1,115 +1,88 @@
 package fst
 
-import "sort"
+import "errors"
 
-type State struct {
-	arcs    map[byte]*Arc
-	isFinal bool
-}
+const (
+	BIT_FINAL_ARC = 0x01
+	BIT_LAST_ARC  = 0x02
+)
 
 type Arc struct {
-	input  byte
+	flags  byte
+	label  byte
+	target int
 	output uint64
-	target *State
+}
+
+type State struct {
+	arcs []Arc
 }
 
 type FST struct {
-	// Need to store the transitions
-	root *State
+	states []State
+	root   int
 }
 
 func (f *FST) Get(key string) (uint64, bool) {
-	state := f.root
+	state := f.states[f.root]
 	var output uint64
 
 	for i := range key {
-		b := key[i]
-		t, ok := state.arcs[b]
-		if !ok {
-			return 0, false
+		label := key[i] // byte key
+		for j, arc := range state.arcs {
+			if arc.label == label {
+				output += arc.output
+				// We have found the final matching arc
+				if arc.flags&BIT_FINAL_ARC != 0 {
+					return output, true
+				}
+
+				state = f.states[arc.target]
+				break
+			} else if arc.flags&BIT_LAST_ARC != 0 || j == (len(state.arcs)-1) {
+				// This means we have no matches
+				return 0, false
+			}
 		}
-		output += t.output
-		state = t.target
 	}
 
-	if !state.isFinal {
-		return 0, false
-	}
+	return 0, false
 
-	return output, true
 }
 
-type Builder struct {
-	register map[string]uint64
-}
+var (
+	ErrInvalidInsertOrder = errors.New("invalid insert order, earlier keys are greater than given key")
+)
 
 type entry struct {
 	key    string
 	offset uint64
 }
 
-func NewBuilder() *Builder {
-	return &Builder{
-		register: make(map[string]uint64),
-	}
+type Builder struct {
+	lastKey  string // determine if we get a incorrect value back (inserts must be preformed in order)
+	registry []entry
 }
 
-func (b *Builder) Insert(key string, offset uint64) {
-	if key == "" {
-		// Empty string is not allowed
-		return
+func commonPrefixLen(s1, s2 string) int {
+	n := len(s1)
+	if len(s2) < n {
+		n = len(s2)
 	}
 
-	b.register[key] = offset
-}
-
-func (b *Builder) Build() *FST {
-	fst := &FST{
-		root: &State{
-			arcs:    make(map[byte]*Arc),
-			isFinal: false,
-		},
-	}
-
-	registry := make([]entry, 0, len(b.register))
-
-	for k, v := range b.register {
-		registry = append(registry, entry{
-			key:    k,
-			offset: v,
-		})
-	}
-
-	sort.SliceStable(registry, func(i, j int) bool {
-		return registry[i].key < registry[j].key
-	})
-
-	for _, r := range registry {
-		state := fst.root
-		offsetLeft := r.offset
-		for i := range r.key {
-			k := r.key[i]
-			arc, ok := state.arcs[k]
-			if !ok {
-				arc = &Arc{
-					input:  k,
-					output: offsetLeft,
-					target: &State{
-						arcs:    make(map[byte]*Arc),
-						isFinal: false,
-					},
-				}
-				offsetLeft = 0
-				state.arcs[k] = arc
-			} else {
-				offsetLeft -= arc.output
-			}
-
-			state = arc.target
+	for i := range n {
+		if s1[i] != s2[i] {
+			return i
 		}
-
-		state.isFinal = true
 	}
 
-	return fst
+	return n
+}
+
+func (b *Builder) Insert(key string, offset uint64) error {
+	if key <= b.lastKey && b.lastKey != "" {
+		return ErrInvalidInsertOrder
+	}
+
+	prefixLen := commonPrefixLen(key, b.lastKey)
 }

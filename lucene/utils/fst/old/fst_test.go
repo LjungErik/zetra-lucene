@@ -3,7 +3,7 @@ package fst_test
 import (
 	"testing"
 
-	"github.com/LjungErik/zetra-lucene/lucene/utils/fst"
+	fst "github.com/LjungErik/zetra-lucene/lucene/utils/fst/old"
 	"github.com/stretchr/testify/assert"
 )
 
