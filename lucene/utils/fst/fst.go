@@ -31,6 +31,86 @@ type FST struct {
 	root   int
 }
 
+func newFST() *FST {
+	return &FST{
+		states: make([]*State, 0),
+		root:   0,
+	}
+}
+
+func (f *FST) addKey(key string, offset uint64) {
+	stateIdx := f.root
+	remaining := offset
+
+	for i := range key {
+		isLastByte := i == (len(key) - 1)
+		arc, existing := f.findOrCreateArc(stateIdx, key[i], remaining)
+
+		if existing {
+			remaining -= arc.output
+
+			if !isLastByte {
+				arc.flags &^= BIT_STOP_NODE
+			}
+		} else {
+			remaining = 0
+		}
+
+		if isLastByte {
+			arc.flags |= BIT_FINAL_ARC
+			if !f.hasOutgoingArcs(arc.target) {
+				arc.flags |= BIT_STOP_NODE
+			}
+		}
+
+		stateIdx = arc.target
+	}
+}
+
+func (f *FST) getOrCreateState(stateIdx int) *State {
+	for stateIdx >= len(f.states) {
+		f.states = append(f.states, &State{})
+	}
+
+	return f.states[stateIdx]
+}
+
+func (f *FST) findOrCreateArc(stateIdx int, label byte, ouput uint64) (*Arc, bool) {
+	state := f.getOrCreateState(stateIdx)
+
+	for _, arc := range state.arcs {
+		if arc.label == label {
+			return arc, true
+		}
+
+		if arc.label > label {
+			break
+		}
+	}
+
+	if n := len(state.arcs); n > 0 {
+		state.arcs[n-1].flags &^= (BIT_LAST_ARC)
+	}
+
+	targetIdx := len(f.states)
+	f.states = append(f.states, &State{})
+
+	arc := &Arc{
+		flags:  BIT_LAST_ARC,
+		label:  label,
+		target: targetIdx,
+		output: ouput,
+	}
+
+	state.arcs = append(state.arcs, arc)
+
+	return arc, false
+}
+
+func (f *FST) hasOutgoingArcs(stateIdx int) bool {
+	return len(f.states[stateIdx].arcs) > 0
+}
+
 func (f *FST) start() *Cursor {
 	return &Cursor{state: f.root}
 }
@@ -146,61 +226,10 @@ func (b *Builder) Insert(key string, offset uint64) error {
 }
 
 func (b *Builder) Build() *FST {
-	fst := &FST{
-		states: make([]*State, 0),
-		root:   0,
-	}
+	fst := newFST()
 
 	for _, e := range b.registry {
-		offsetLeft := e.offset
-		stateOffset := fst.root
-		for i := range e.key {
-			label := e.key[i]
-			// The state for this label does not exist
-			if stateOffset >= len(fst.states) {
-				fst.states = append(fst.states, &State{
-					arcs: make([]*Arc, 0),
-				})
-			}
-
-			state := fst.states[stateOffset]
-			// Go through all of the arcs and find a match if it exists
-			// if not create a arc
-			arcs := state.arcs
-			var arc *Arc = nil
-			for j := range arcs {
-				if arcs[j].label == label {
-					arc = arcs[j]
-					break
-				}
-			}
-
-			if arc == nil {
-				// No longer the last arc
-				if len(arcs) > 0 {
-					state.arcs[len(arcs)-1].flags &= (BIT_LAST_ARC ^ 0xFF)
-				}
-				arc = &Arc{
-					flags:  BIT_LAST_ARC,
-					label:  label,
-					target: len(fst.states),
-					output: offsetLeft,
-				}
-
-				state.arcs = append(state.arcs, arc)
-			} else {
-				// arc needs to be marked as no longer a stop node
-				arc.flags &= (BIT_STOP_NODE ^ 0xFF)
-			}
-
-			if i == (len(e.key) - 1) {
-				// end of key and therefore marked as final and as a stop node
-				arc.flags |= (BIT_FINAL_ARC | BIT_STOP_NODE)
-			}
-
-			offsetLeft -= arc.output
-			stateOffset = arc.target
-		}
+		fst.addKey(e.key, e.offset)
 	}
 
 	return fst
