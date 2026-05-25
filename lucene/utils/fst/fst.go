@@ -5,7 +5,15 @@ import "errors"
 const (
 	BIT_FINAL_ARC = 0x01
 	BIT_LAST_ARC  = 0x02
+	BIT_STOP_NODE = 0x08
 )
+
+type Cursor struct {
+	state   int
+	output  uint64
+	isFinal bool
+	done    bool
+}
 
 type Arc struct {
 	flags  byte
@@ -15,43 +23,87 @@ type Arc struct {
 }
 
 type State struct {
-	arcs []Arc
+	arcs []*Arc
 }
 
 type FST struct {
-	states []State
+	states []*State
 	root   int
 }
 
-func (f *FST) Get(key string) (uint64, bool) {
-	state := f.states[f.root]
-	var output uint64
+func (f *FST) start() *Cursor {
+	return &Cursor{state: f.root}
+}
 
-	for i := range key {
-		label := key[i] // byte key
-		for j, arc := range state.arcs {
-			if arc.label == label {
-				output += arc.output
-				// We have found the final matching arc
-				if arc.flags&BIT_FINAL_ARC != 0 {
-					return output, true
-				}
+func (f *FST) step(c *Cursor, label byte) *Cursor {
+	if c.done {
+		return &Cursor{done: true}
+	}
 
-				state = f.states[arc.target]
-				break
-			} else if arc.flags&BIT_LAST_ARC != 0 || j == (len(state.arcs)-1) {
-				// This means we have no matches
-				return 0, false
+	state := f.states[c.state]
+	for _, arc := range state.arcs {
+		if arc.label == label {
+			next := &Cursor{
+				output:  c.output + arc.output,
+				isFinal: arc.flags&BIT_FINAL_ARC != 0,
 			}
+			if arc.flags&BIT_STOP_NODE != 0 {
+				next.done = true
+			} else {
+				next.state = arc.target
+			}
+
+			return next
+		}
+		if arc.label > label {
+			break
+		}
+
+		if arc.flags&BIT_LAST_ARC != 0 {
+			break
 		}
 	}
 
-	return 0, false
+	return &Cursor{done: true}
+}
 
+func (f *FST) Get(key string) (uint64, bool) {
+	c := f.start()
+	for i := 0; i < len(key); i++ {
+		c = f.step(c, key[i])
+		if c.done && i < len(key)-1 {
+			return 0, false
+		}
+	}
+
+	if !c.isFinal {
+		return 0, false
+	}
+
+	return c.output, true
+}
+
+func (f *FST) LookupBlock(key string) (uint64, bool) {
+	c := f.start()
+	var lastFinal uint64
+	haveFinal := false
+	for i := 0; i < len(key); i++ {
+		c = f.step(c, key[i])
+		if c.isFinal {
+			lastFinal = c.output
+			haveFinal = true
+		}
+		if c.done {
+			break
+		}
+	}
+
+	return lastFinal, haveFinal
 }
 
 var (
-	ErrInvalidInsertOrder = errors.New("invalid insert order, earlier keys are greater than given key")
+	ErrInvalidKey    = errors.New("invalid key, earlier keys are greater than given key")
+	ErrInvalidOffset = errors.New("invalid offset, current highest offset is larger than given offset")
 )
 
 type entry struct {
@@ -60,29 +112,96 @@ type entry struct {
 }
 
 type Builder struct {
-	lastKey  string // determine if we get a incorrect value back (inserts must be preformed in order)
-	registry []entry
+	lastKey    string // determine if we get a incorrect value back (inserts must be preformed in order)
+	lastOffset uint64
+	registry   []entry
 }
 
-func commonPrefixLen(s1, s2 string) int {
-	n := len(s1)
-	if len(s2) < n {
-		n = len(s2)
+func NewBuilder() *Builder {
+	return &Builder{
+		lastKey:    "",
+		lastOffset: 0,
+		registry:   make([]entry, 0),
 	}
-
-	for i := range n {
-		if s1[i] != s2[i] {
-			return i
-		}
-	}
-
-	return n
 }
 
 func (b *Builder) Insert(key string, offset uint64) error {
 	if key <= b.lastKey && b.lastKey != "" {
-		return ErrInvalidInsertOrder
+		return ErrInvalidKey
 	}
 
-	prefixLen := commonPrefixLen(key, b.lastKey)
+	if offset <= b.lastOffset {
+		return ErrInvalidOffset
+	}
+
+	b.registry = append(b.registry, entry{
+		key:    key,
+		offset: offset,
+	})
+
+	b.lastKey = key
+	b.lastOffset = offset
+
+	return nil
+}
+
+func (b *Builder) Build() *FST {
+	fst := &FST{
+		states: make([]*State, 0),
+		root:   0,
+	}
+
+	for _, e := range b.registry {
+		offsetLeft := e.offset
+		stateOffset := fst.root
+		for i := range e.key {
+			label := e.key[i]
+			// The state for this label does not exist
+			if stateOffset >= len(fst.states) {
+				fst.states = append(fst.states, &State{
+					arcs: make([]*Arc, 0),
+				})
+			}
+
+			state := fst.states[stateOffset]
+			// Go through all of the arcs and find a match if it exists
+			// if not create a arc
+			arcs := state.arcs
+			var arc *Arc = nil
+			for j := range arcs {
+				if arcs[j].label == label {
+					arc = arcs[j]
+					break
+				}
+			}
+
+			if arc == nil {
+				// No longer the last arc
+				if len(arcs) > 0 {
+					state.arcs[len(arcs)-1].flags &= (BIT_LAST_ARC ^ 0xFF)
+				}
+				arc = &Arc{
+					flags:  BIT_LAST_ARC,
+					label:  label,
+					target: len(fst.states),
+					output: offsetLeft,
+				}
+
+				state.arcs = append(state.arcs, arc)
+			} else {
+				// arc needs to be marked as no longer a stop node
+				arc.flags &= (BIT_STOP_NODE ^ 0xFF)
+			}
+
+			if i == (len(e.key) - 1) {
+				// end of key and therefore marked as final and as a stop node
+				arc.flags |= (BIT_FINAL_ARC | BIT_STOP_NODE)
+			}
+
+			offsetLeft -= arc.output
+			stateOffset = arc.target
+		}
+	}
+
+	return fst
 }
