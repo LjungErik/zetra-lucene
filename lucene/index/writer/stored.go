@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/LjungErik/zetra-lucene/lucene/document"
-	"github.com/LjungErik/zetra-lucene/lucene/index"
+	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 )
 
 type StoredWriter struct {
@@ -28,8 +28,8 @@ func (w *StoredWriter) write(docID int, field document.DocumentField) {
 	w.fieldDocs[field.Name()][docIDStr] = field.ValueAsString()
 }
 
-func (w *StoredWriter) flush(sws *index.SegementWriteState) (int64, error) {
-	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), index.STORED_FILE_EXTENSION)
+func (w *StoredWriter) flush(sws *segment.SegmentWriteState) (int64, error) {
+	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), segment.STORED_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)
 	if err != nil {

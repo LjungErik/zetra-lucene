@@ -6,7 +6,7 @@ import (
 
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/analyzer"
 	"github.com/LjungErik/zetra-lucene/lucene/document"
-	"github.com/LjungErik/zetra-lucene/lucene/index"
+	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/utils"
 )
 
@@ -61,7 +61,7 @@ func (w *DocumentWriter) addDocuments(docs []*document.IndexableDocument) error 
 	return nil
 }
 
-func (w *DocumentWriter) flush(sws *index.SegementWriteState) error {
+func (w *DocumentWriter) flush(sws *segment.SegmentWriteState) error {
 	var bytesWritten int64 = 0
 	n, err := w.term.flush(sws)
 	if err != nil {

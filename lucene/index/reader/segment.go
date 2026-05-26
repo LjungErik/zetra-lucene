@@ -6,23 +6,24 @@ import (
 
 	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
+	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 )
 
 type SegmentReader struct {
-	metadata     index.SegmentMetadata
+	metadata     segment.SegmentMetadata
 	index        map[string]map[string][]index.TermCount
 	docs         map[string]map[string]string
-	docsMetadata map[string]*index.SegmentDocumentsMetadata
+	docsMetadata map[string]*segment.SegmentDocumentsMetadata
 }
 
 var _ context.LeafReaderContext = (*SegmentReader)(nil)
 
-func OpenSegmentReader(metadata index.SegmentMetadata, dir directory.Directory) (*SegmentReader, error) {
+func OpenSegmentReader(metadata segment.SegmentMetadata, dir directory.Directory) (*SegmentReader, error) {
 	var (
-		indexFilename  = fmt.Sprintf("%s%s", metadata.SegmentName, index.TERM_FILE_EXTENSION)
-		storedFileName = fmt.Sprintf("%s%s", metadata.SegmentName, index.STORED_FILE_EXTENSION)
-		statsFilename  = fmt.Sprintf("%s%s", metadata.SegmentName, index.STATICS_FILE_EXTENSION)
+		indexFilename  = fmt.Sprintf("%s%s", metadata.SegmentName, segment.TERM_FILE_EXTENSION)
+		storedFileName = fmt.Sprintf("%s%s", metadata.SegmentName, segment.STORED_FILE_EXTENSION)
+		statsFilename  = fmt.Sprintf("%s%s", metadata.SegmentName, segment.STATICS_FILE_EXTENSION)
 	)
 
 	r := &SegmentReader{

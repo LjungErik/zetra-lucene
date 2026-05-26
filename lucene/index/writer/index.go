@@ -3,8 +3,8 @@ package writer
 import (
 	"github.com/LjungErik/zetra-lucene/lucene/analysis/analyzer"
 	"github.com/LjungErik/zetra-lucene/lucene/document"
-	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
+	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 )
 
 type IndexWriter struct {
@@ -28,7 +28,7 @@ func (w *IndexWriter) AddDocument(doc *document.IndexableDocument) {
 }
 
 func (w *IndexWriter) Flush() error {
-	state, err := index.CreateNewSegmentWriteState(w.directory)
+	state, err := segment.CreateNewSegmentWriteState(w.directory)
 	if err != nil {
 		return err
 	}

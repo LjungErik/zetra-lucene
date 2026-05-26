@@ -1,4 +1,4 @@
-package index
+package segment
 
 import (
 	"encoding/json"
@@ -36,23 +36,6 @@ type SegmentDocumentsMetadata struct {
 	DocsLength    map[string]int `json:"docs_length"`
 	DocumentCount int            `json:"docs_count"`
 	AvgDocsLength float64        `json:"avg_docs_length"`
-}
-
-type SegementWriteState struct {
-	Segments  *Segments
-	Directory directory.Directory
-}
-
-func CreateNewSegmentWriteState(dir directory.Directory) (*SegementWriteState, error) {
-	s, err := getNewestSegmentsMetadata(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SegementWriteState{
-		Directory: dir,
-		Segments:  s,
-	}, nil
 }
 
 func defaultSegment() *Segments {

@@ -4,22 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/LjungErik/zetra-lucene/lucene/index"
+	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 )
 
 type StatisticsTermWriter struct {
-	fieldsMetadata map[string]*index.SegmentDocumentsMetadata
+	fieldsMetadata map[string]*segment.SegmentDocumentsMetadata
 }
 
 func NewStatisticsTermWriter() *StatisticsTermWriter {
 	return &StatisticsTermWriter{
-		fieldsMetadata: make(map[string]*index.SegmentDocumentsMetadata),
+		fieldsMetadata: make(map[string]*segment.SegmentDocumentsMetadata),
 	}
 }
 
 func (w *StatisticsTermWriter) write(docID int, fieldName string, dataLength int) {
 	if _, ok := w.fieldsMetadata[fieldName]; !ok {
-		w.fieldsMetadata[fieldName] = &index.SegmentDocumentsMetadata{
+		w.fieldsMetadata[fieldName] = &segment.SegmentDocumentsMetadata{
 			DocsLength: make(map[string]int),
 		}
 	}
@@ -31,8 +31,8 @@ func (w *StatisticsTermWriter) write(docID int, fieldName string, dataLength int
 	w.fieldsMetadata[fieldName].DocumentCount = len(w.fieldsMetadata[fieldName].DocsLength)
 }
 
-func (w *StatisticsTermWriter) flush(sws *index.SegementWriteState) (int64, error) {
-	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), index.STATICS_FILE_EXTENSION)
+func (w *StatisticsTermWriter) flush(sws *segment.SegmentWriteState) (int64, error) {
+	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), segment.STATICS_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)
 	if err != nil {

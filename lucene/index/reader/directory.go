@@ -1,8 +1,8 @@
 package reader
 
 import (
-	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
+	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/search/context"
 )
 
@@ -17,7 +17,7 @@ type StandardDirectoryReader struct {
 var _ DirectoryReader = (*StandardDirectoryReader)(nil)
 
 func OpenStandrardDirectoryReader(dir directory.Directory) (*StandardDirectoryReader, error) {
-	metadata, err := index.GetNewestSegment(dir)
+	metadata, err := segment.GetNewestSegment(dir)
 	if err != nil {
 		return nil, err
 	}

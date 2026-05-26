@@ -1,7 +1,6 @@
 package codecs
 
 type CodecsWriter interface {
-	GetTermsWriter() TermsWriter
-	GetPostingsWriter() PostingsWriter
-	GetStoredFieldWriter()
+	GetPostingsFormat() PostingsFormat
+	GetStoredFieldsFormat() StoredFieldsFormat
 }
