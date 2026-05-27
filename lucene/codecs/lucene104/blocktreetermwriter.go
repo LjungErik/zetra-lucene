@@ -6,7 +6,6 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
 	"github.com/LjungErik/zetra-lucene/lucene/utils"
-	"github.com/LjungErik/zetra-lucene/lucene/utils/queue"
 )
 
 const (
@@ -47,7 +46,7 @@ func (l *Lucene104BlockTreeTermsWriter) Write(fields index.Fields) error {
 		terms := fields.Terms(field)
 
 		for term := range terms.Terms() {
-			tw := newTermWriter(l.termsOut, l.minItemsPerBlock, l.pw)
+			tw := newTermWriter(l)
 			tw.write(term)
 		}
 	}
@@ -67,48 +66,97 @@ type PendingEntry struct {
 }
 
 type termWriter struct {
-	pending      *queue.Queue[PendingEntry]
-	prevLastTerm string
+	pending      []PendingEntry
+	prevTerm     string
 	parent       *Lucene104BlockTreeTermsWriter
+	prefixStarts []int
 }
 
 func newTermWriter(parent *Lucene104BlockTreeTermsWriter) *termWriter {
 	return &termWriter{
-		pending:      queue.NewQueue[PendingEntry](),
+		pending:      make([]PendingEntry, 0, 10),
 		parent:       parent,
-		prevLastTerm: "",
+		prevTerm:     "",
+		prefixStarts: make([]int, 8),
 	}
 }
 
 func (w *termWriter) write(term index.Term) {
 	state := w.parent.pw.Write(term)
+	w.pushTerm(term.Value())
 
-	w.pending.Push(PendingEntry{
+	w.pending = append(w.pending, PendingEntry{
 		TermBytes: []byte(term.Value()),
 		State:     state,
 	})
+}
 
-	if w.pending.Len() >= w.parent.minItemsPerBlock {
-		first := w.pending.Peak()
-		for pe, ok := w.pending.Pop(); ok; {
-			// Write the actual term to the termsOut
-			w.parent.termsOut.Write(pe.TermBytes)
-			w.parent.pw.EncodeTerm(w.parent.termsOut, pe.State)
+func (w *termWriter) pushTerm(term string) {
+	prefixLength := utils.CommonPrefixLength(w.prevTerm, term)
+
+	for i := len(w.prevTerm); i >= prefixLength; i-- {
+		prefixTopSize := len(w.pending) - w.prefixStarts[i]
+		if prefixTopSize >= w.parent.minItemsPerBlock {
+			// writing of this block
+			// reset the prefix start
+			w.prefixStarts[i] -= prefixTopSize - 1
 		}
-
-		prefixLen := shortestPrefixLength(w.prevLastTerm, string(first.TermBytes), term.Value())
-
-		// Write the prefix to the FST
-
-		w.prevLastTerm = term.Value()
-
-		// Write the FST with the smallest prefix between first and previous
-		// Save the last term name as previous term
 	}
+
+	if len(w.prefixStarts) < len(term) {
+		w.prefixStarts = utils.Grow(w.prefixStarts, len(term))
+	}
+
+	for i := prefixLength; i < len(term); i++ {
+		w.prefixStarts[i] = len(w.pending)
+	}
+
+	w.prevTerm = term
 }
 
 func (w *termWriter) flush() {
 
+}
+
+func (w *termWriter) writeBlocks(prefixLen, count int) {
+	lastSuffixLeadLabel := -1
+
+	start := len(w.pending) - count
+	end := len(w.pending)
+	nextBlockStart := start
+
+	for i := start; i < end; i++ {
+		p := w.pending[i]
+
+		var suffixLeadLabel int
+
+		if len(p.TermBytes) == prefixLen {
+			suffixLeadLabel = -1
+		} else {
+			suffixLeadLabel = int(p.TermBytes[prefixLen] & 0xFF)
+		}
+
+		if suffixLeadLabel != lastSuffixLeadLabel && i > 0 {
+			// Write a block of data
+			w.writeBlock(prefixLen, nextBlockStart, i)
+			nextBlockStart = i
+		}
+	}
+
+	if nextBlockStart < count {
+		// Still data left that needs to be written to a block
+		w.writeBlock(prefixLen, nextBlockStart, end)
+	}
+}
+
+func (w *termWriter) writeBlock(
+	prefixLen int,
+	start int,
+	end int,
+) {
+	for i := start; i < end; i++ {
+		// Get the suffix for each entry and write to termOut
+	}
 }
 
 func shortestPrefixLength(prev, first, last string) int {
