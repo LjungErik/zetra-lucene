@@ -2,7 +2,10 @@ package lucene104
 
 import (
 	"github.com/LjungErik/zetra-lucene/lucene/codecs"
+	"github.com/LjungErik/zetra-lucene/lucene/codecs/lucene104/constants"
+	codec_utils "github.com/LjungErik/zetra-lucene/lucene/codecs/utils"
 	"github.com/LjungErik/zetra-lucene/lucene/index"
+	"github.com/LjungErik/zetra-lucene/lucene/index/filenames"
 	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
 	"github.com/LjungErik/zetra-lucene/lucene/utils"
@@ -17,6 +20,8 @@ type Lucene104BlockTreeTermsWriter struct {
 	sws              *segment.SegmentWriteState
 	pw               codecs.PostingsWriter
 	termsOut         *internal.OutputStream
+	indexOut         *internal.OutputStream
+	metaOut          *internal.OutputStream
 	minItemsPerBlock int
 	maxItemsPerBlock int
 }
@@ -24,15 +29,63 @@ type Lucene104BlockTreeTermsWriter struct {
 var _ codecs.FieldsConsumer = (*Lucene104BlockTreeTermsWriter)(nil)
 
 func NewLucene104BlockTreeTermsWriter(sws *segment.SegmentWriteState, writer codecs.PostingsWriter) (*Lucene104BlockTreeTermsWriter, error) {
-	termsOut, err := sws.Directory.OpenOutputStream("tes.ttxt")
+	termsFilename := filenames.SegmentFileName(
+		sws.Segments.NextSegmentName(),
+		sws.SegmentSuffix(),
+		constants.TermsExtension)
+	termsOut, err := sws.Directory.OpenOutputStream(termsFilename)
 	if err != nil {
 		return nil, err
 	}
+
+	codec_utils.WriteIndexHeader(
+		termsOut,
+		constants.TermsCodeName,
+		constants.VersionCurrent,
+		[]byte(sws.Segments.NextSegmentName()),
+		sws.SegmentSuffix(),
+	)
+
+	indexFileName := filenames.SegmentFileName(
+		sws.Segments.NextSegmentName(),
+		sws.SegmentSuffix(),
+		constants.TermsIndexExtension)
+	indexOut, err := sws.Directory.OpenOutputStream(indexFileName)
+	if err != nil {
+		return nil, err
+	}
+	codec_utils.WriteIndexHeader(
+		indexOut,
+		constants.TermsIndexCodecName,
+		constants.VersionCurrent,
+		[]byte(sws.Segments.NextSegmentName()),
+		sws.SegmentSuffix(),
+	)
+
+	metaFileName := filenames.SegmentFileName(
+		sws.Segments.NextSegmentName(),
+		sws.SegmentSuffix(),
+		constants.TermsMetaExtension)
+	metaOut, err := sws.Directory.OpenOutputStream(metaFileName)
+	if err != nil {
+		return nil, err
+	}
+	codec_utils.WriteIndexHeader(
+		metaOut,
+		constants.TermsMetaCodecName,
+		constants.VersionCurrent,
+		[]byte(sws.Segments.NextSegmentName()),
+		sws.SegmentSuffix(),
+	)
+
+	writer.Init(metaOut, sws)
 
 	return &Lucene104BlockTreeTermsWriter{
 		sws:              sws,
 		pw:               writer,
 		termsOut:         termsOut,
+		indexOut:         indexOut,
+		metaOut:          metaOut,
 		minItemsPerBlock: minItemsPerBlock,
 		maxItemsPerBlock: maxItemsPerBlock,
 	}, nil
@@ -99,6 +152,7 @@ func (w *termWriter) pushTerm(term string) {
 		if prefixTopSize >= w.parent.minItemsPerBlock {
 			// writing of this block
 			// reset the prefix start
+			w.writeBlocks(i+1, prefixTopSize)
 			w.prefixStarts[i] -= prefixTopSize - 1
 		}
 	}
