@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
+	"github.com/LjungErik/zetra-lucene/lucene/internal/stream"
 )
 
 type Directory interface {
-	OpenOutputStream(string) (*internal.OutputStream, error)
-	OpenInputStream(string) (*internal.InputStream, error)
+	OpenOutputStream(string) (internal.DataOutputStream, error)
+	OpenInputStream(string) (internal.DataInputStream, error)
 	GetEntries() ([]os.DirEntry, error)
 }
 
@@ -25,24 +26,24 @@ func OpenFSDirectory(directroy string) *FSDirectory {
 	}
 }
 
-func (d *FSDirectory) OpenOutputStream(filename string) (*internal.OutputStream, error) {
+func (d *FSDirectory) OpenOutputStream(filename string) (internal.DataOutputStream, error) {
 	path := d.resolve(filename)
 	f, err := os.OpenFile(path, os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
 
-	return internal.NewOutputStream(f), nil
+	return stream.NewOutputStream(f), nil
 }
 
-func (d *FSDirectory) OpenInputStream(filename string) (*internal.InputStream, error) {
+func (d *FSDirectory) OpenInputStream(filename string) (internal.DataInputStream, error) {
 	path := d.resolve(filename)
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return internal.NewInputStream(f), nil
+	return stream.NewInputStream(f), nil
 }
 
 func (d *FSDirectory) GetEntries() ([]os.DirEntry, error) {

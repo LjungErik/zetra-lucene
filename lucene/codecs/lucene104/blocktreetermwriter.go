@@ -207,10 +207,26 @@ func (w *termWriter) writeBlock(
 	prefixLen int,
 	start int,
 	end int,
-) {
+) error {
+
+	numEntries := end - start
+	code := numEntries << 1
+	if end == len(w.pending) {
+		code |= 1
+	}
+
+	if err := w.parent.termsOut.WriteVInt(code); err != nil {
+		return err
+	}
+
 	for i := start; i < end; i++ {
 		// Get the suffix for each entry and write to termOut
+		p := w.pending[i]
+		suffixLen := len(p.TermBytes) - prefixLen
+
 	}
+
+	return nil
 }
 
 func shortestPrefixLength(prev, first, last string) int {
