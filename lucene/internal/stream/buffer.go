@@ -19,8 +19,8 @@ func NewMemBufferDataOutput() *MemBufferDataOutput {
 
 func (m *MemBufferDataOutput) Close() error { return nil }
 
-func (m *MemBufferDataOutput) GetWrittenBytes() int {
-	return m.buf.Len()
+func (m *MemBufferDataOutput) GetWrittenBytes() uint64 {
+	return uint64(m.buf.Len())
 }
 
 func (m *MemBufferDataOutput) GetCheckSum() uint64 {

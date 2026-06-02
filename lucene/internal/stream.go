@@ -12,6 +12,6 @@ type DataOutputStream interface {
 	WriteByte(b byte) error
 	Close() error
 
-	GetWrittenBytes() int
+	GetWrittenBytes() uint64
 	GetCheckSum() uint64
 }

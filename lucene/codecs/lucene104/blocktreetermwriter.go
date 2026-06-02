@@ -28,6 +28,8 @@ type Lucene104BlockTreeTermsWriter struct {
 	metaOut          internal.DataOutputStream
 	minItemsPerBlock int
 	maxItemsPerBlock int
+	closed           bool
+	fields           []*stream.MemBufferDataOutput
 }
 
 var _ codecs.FieldsConsumer = (*Lucene104BlockTreeTermsWriter)(nil)
@@ -42,13 +44,15 @@ func NewLucene104BlockTreeTermsWriter(sws *segment.SegmentWriteState, writer cod
 		return nil, err
 	}
 
-	codec_utils.WriteIndexHeader(
+	if err = codec_utils.WriteIndexHeader(
 		termsOut,
 		constants.TermsCodeName,
 		constants.VersionCurrent,
 		[]byte(sws.Segments.NextSegmentName()),
 		sws.SegmentSuffix(),
-	)
+	); err != nil {
+		return nil, err
+	}
 
 	indexFileName := filenames.SegmentFileName(
 		sws.Segments.NextSegmentName(),
@@ -58,13 +62,16 @@ func NewLucene104BlockTreeTermsWriter(sws *segment.SegmentWriteState, writer cod
 	if err != nil {
 		return nil, err
 	}
-	codec_utils.WriteIndexHeader(
+
+	if err = codec_utils.WriteIndexHeader(
 		indexOut,
 		constants.TermsIndexCodecName,
 		constants.VersionCurrent,
 		[]byte(sws.Segments.NextSegmentName()),
 		sws.SegmentSuffix(),
-	)
+	); err != nil {
+		return nil, err
+	}
 
 	metaFileName := filenames.SegmentFileName(
 		sws.Segments.NextSegmentName(),
@@ -74,13 +81,16 @@ func NewLucene104BlockTreeTermsWriter(sws *segment.SegmentWriteState, writer cod
 	if err != nil {
 		return nil, err
 	}
-	codec_utils.WriteIndexHeader(
+
+	if err = codec_utils.WriteIndexHeader(
 		metaOut,
 		constants.TermsMetaCodecName,
 		constants.VersionCurrent,
 		[]byte(sws.Segments.NextSegmentName()),
 		sws.SegmentSuffix(),
-	)
+	); err != nil {
+		return nil, err
+	}
 
 	writer.Init(metaOut, sws)
 
@@ -92,6 +102,8 @@ func NewLucene104BlockTreeTermsWriter(sws *segment.SegmentWriteState, writer cod
 		metaOut:          metaOut,
 		minItemsPerBlock: minItemsPerBlock,
 		maxItemsPerBlock: maxItemsPerBlock,
+		closed:           false,
+		fields:           make([]*stream.MemBufferDataOutput, 0),
 	}, nil
 }
 
@@ -101,18 +113,58 @@ func (l *Lucene104BlockTreeTermsWriter) Write(fields index.Fields) error {
 	// If a block becomes full then write the block to FST
 	for field := range fields.Iter() {
 		terms := fields.Terms(field)
+		tw := newTermWriter(l)
 
 		for term := range terms.Terms() {
-			tw := newTermWriter(l)
+
 			tw.write(term)
 		}
+
+		tw.finish()
 	}
 
 	return nil
 }
 
 func (l *Lucene104BlockTreeTermsWriter) Close() error {
-	l.pw.Close()
+	if l.closed {
+		return nil
+	}
+	l.closed = true
+
+	if err := l.metaOut.WriteVInt(len(l.fields)); err != nil {
+		return err
+	}
+
+	for _, fieldMeta := range l.fields {
+		if err := fieldMeta.CopyTo(l.metaOut); err != nil {
+			return err
+		}
+	}
+
+	if err := codec_utils.WriteFooter(l.indexOut); err != nil {
+		return err
+	}
+
+	if err := l.metaOut.WriteVUInt64(l.indexOut.GetWrittenBytes()); err != nil {
+		return err
+	}
+
+	if err := codec_utils.WriteFooter(l.termsOut); err != nil {
+		return err
+	}
+
+	if err := l.termsOut.WriteVUInt64(l.termsOut.GetWrittenBytes()); err != nil {
+		return err
+	}
+
+	if err := codec_utils.WriteFooter(l.metaOut); err != nil {
+		return err
+	}
+
+	if err := utils.CloseAll(l.metaOut, l.termsOut, l.indexOut, l.pw); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -123,26 +175,33 @@ type PendingEntry struct {
 }
 
 type termWriter struct {
-	pending      []PendingEntry
-	prevTerm     string
-	parent       *Lucene104BlockTreeTermsWriter
-	prefixStarts []int
+	pending        []PendingEntry
+	firstTermBytes []byte
+	lastTermBytes  []byte
+	lastTerm       string
+	parent         *Lucene104BlockTreeTermsWriter
+	prefixStarts   []int
 
 	statsWriter        *stream.MemBufferDataOutput
 	suffixLengthWriter *stream.MemBufferDataOutput
 	suffixWriter       bytes.Buffer
 	metaWriter         *stream.MemBufferDataOutput
+
+	sumDocumentFrequency  uint64
+	sumTotalTermFrequency uint64
+	numTerms              uint64
 }
 
 func newTermWriter(parent *Lucene104BlockTreeTermsWriter) *termWriter {
 	return &termWriter{
 		pending:      make([]PendingEntry, 0, 10),
 		parent:       parent,
-		prevTerm:     "",
+		lastTerm:     "",
 		prefixStarts: make([]int, 8),
 
 		statsWriter:        stream.NewMemBufferDataOutput(),
 		suffixLengthWriter: stream.NewMemBufferDataOutput(),
+		metaWriter:         stream.NewMemBufferDataOutput(),
 	}
 }
 
@@ -150,16 +209,27 @@ func (w *termWriter) write(term index.Term) {
 	state := w.parent.pw.Write(term)
 	w.pushTerm(term.Value())
 
-	w.pending = append(w.pending, PendingEntry{
+	entry := PendingEntry{
 		TermBytes: []byte(term.Value()),
 		State:     state,
-	})
+	}
+
+	w.pending = append(w.pending, entry)
+
+	w.sumDocumentFrequency += uint64(state.DocumentFrequency)
+	w.sumTotalTermFrequency += state.TotalTermFrequency
+	w.numTerms++
+
+	if w.firstTermBytes == nil {
+		w.firstTermBytes = entry.TermBytes
+	}
+	w.lastTermBytes = entry.TermBytes
 }
 
 func (w *termWriter) pushTerm(term string) {
-	prefixLength := utils.CommonPrefixLength(w.prevTerm, term)
+	prefixLength := utils.CommonPrefixLength(w.lastTerm, term)
 
-	for i := len(w.prevTerm); i >= prefixLength; i-- {
+	for i := len(w.lastTerm); i >= prefixLength; i-- {
 		prefixTopSize := len(w.pending) - w.prefixStarts[i]
 		if prefixTopSize >= w.parent.minItemsPerBlock {
 			// writing of this block
@@ -177,11 +247,45 @@ func (w *termWriter) pushTerm(term string) {
 		w.prefixStarts[i] = len(w.pending)
 	}
 
-	w.prevTerm = term
+	w.lastTerm = term
 }
 
-func (w *termWriter) flush() {
+func (w *termWriter) finish() error {
+	if w.numTerms <= 0 {
+		return nil
+	}
 
+	w.writeBlocks(0, len(w.pending))
+
+	metaBuffOut := stream.NewMemBufferDataOutput()
+	w.parent.fields = append(w.parent.fields, metaBuffOut)
+
+	if err := metaBuffOut.WriteVUInt64(w.numTerms); err != nil {
+		return err
+	}
+
+	// Add if statement to check index options
+	if err := metaBuffOut.WriteVUInt64(w.sumTotalTermFrequency); err != nil {
+		return err
+	}
+
+	if err := metaBuffOut.WriteVUInt64(w.sumDocumentFrequency); err != nil {
+		return err
+	}
+
+	// TODO: write docs seen cardinality
+
+	if err := writeBytesRef(metaBuffOut, w.firstTermBytes); err != nil {
+		return err
+	}
+
+	if err := writeBytesRef(metaBuffOut, w.lastTermBytes); err != nil {
+		return err
+	}
+
+	// Save this on the root index
+
+	return nil
 }
 
 func (w *termWriter) writeBlocks(prefixLen, count int) {
@@ -260,41 +364,110 @@ func (w *termWriter) writeBlock(
 		return err
 	}
 
+	compressionAlgo := compression.NoCompression
+
 	var token uint64 = uint64(w.suffixWriter.Len()) << 3
 	token |= 0x04
-	token |= compression.NoCompression
+	token |= uint64(compressionAlgo)
 
 	if err := w.parent.termsOut.WriteVUInt64(token); err != nil {
 		return err
 	}
 
-	if _, err := w.suffixWriter.WriteTo(w.parent.termsOut); err != nil {
-		return nil
+	if err := w.writeSuffix(compressionAlgo); err != nil {
+		return err
+	}
+
+	if err := w.writeSuffixLength(); err != nil {
+		return err
+	}
+
+	if err := w.writeStats(); err != nil {
+		return err
+	}
+
+	if err := w.writeMeta(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *termWriter) writeSuffix(compressionAlgo compression.CompressionAlgorithm) error {
+	if compressionAlgo == compression.NoCompression {
+		if _, err := w.suffixWriter.WriteTo(w.parent.termsOut); err != nil {
+			return err
+		}
+	} else {
+		// TODO handle case where compression needs to happen
 	}
 
 	w.suffixWriter.Reset()
 
+	return nil
+}
+
+func (w *termWriter) writeSuffixLength() error {
 	numSuffixBytes := w.suffixLengthWriter.GetWrittenBytes()
 	// TODO: Improve handling of spareBytes to avoid reallocation every time block is written
 	var spareBytes bytes.Buffer
-	w.suffixLengthWriter.CopyTo(&spareBytes)
+
+	if err := w.suffixLengthWriter.CopyTo(&spareBytes); err != nil {
+		return err
+	}
+
 	w.suffixLengthWriter.Reset()
 
 	// TODO: add Ignore all equal check to minimize write
-	w.parent.termsOut.WriteVInt(numSuffixBytes << 1)
-	w.parent.termsOut.Write(spareBytes.Bytes())
+	if err := w.parent.termsOut.WriteVInt(int(numSuffixBytes << 1)); err != nil {
+		return err
+	}
 
-	// Write Stats
+	if _, err := w.parent.termsOut.Write(spareBytes.Bytes()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *termWriter) writeStats() error {
 	numStatsBytes := w.statsWriter.GetWrittenBytes()
-	w.parent.indexOut.WriteVInt(numStatsBytes)
-	w.statsWriter.CopyTo(w.parent.termsOut)
+	if err := w.parent.indexOut.WriteVInt(int(numStatsBytes)); err != nil {
+		return err
+	}
+
+	if err := w.statsWriter.CopyTo(w.parent.termsOut); err != nil {
+		return err
+	}
+
 	w.statsWriter.Reset()
 
-	// Write Meta data
+	return nil
+}
+
+func (w *termWriter) writeMeta() error {
 	numMetaBytes := w.metaWriter.GetWrittenBytes()
-	w.parent.termsOut.WriteVInt(numMetaBytes)
-	w.metaWriter.CopyTo(w.parent.termsOut)
+	if err := w.parent.termsOut.WriteVInt(int(numMetaBytes)); err != nil {
+		return err
+	}
+
+	if err := w.metaWriter.CopyTo(w.parent.termsOut); err != nil {
+		return err
+	}
+
 	w.metaWriter.Reset()
+
+	return nil
+}
+
+func writeBytesRef(out internal.DataOutputStream, data []byte) error {
+	if err := out.WriteVInt(len(data)); err != nil {
+		return err
+	}
+
+	if _, err := out.Write(data); err != nil {
+		return err
+	}
 
 	return nil
 }

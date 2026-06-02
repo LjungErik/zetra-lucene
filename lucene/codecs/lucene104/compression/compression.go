@@ -1,5 +1,7 @@
 package compression
 
+type CompressionAlgorithm uint64
+
 const (
-	NoCompression uint64 = 0x00
+	NoCompression CompressionAlgorithm = 0x00
 )
