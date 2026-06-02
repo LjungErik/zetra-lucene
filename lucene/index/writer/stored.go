@@ -28,7 +28,7 @@ func (w *StoredWriter) write(docID int, field document.DocumentField) {
 	w.fieldDocs[field.Name()][docIDStr] = field.ValueAsString()
 }
 
-func (w *StoredWriter) flush(sws *segment.SegmentWriteState) (int64, error) {
+func (w *StoredWriter) flush(sws *segment.SegmentWriteState) (int, error) {
 	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), segment.STORED_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)

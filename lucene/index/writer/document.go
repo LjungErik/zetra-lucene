@@ -62,7 +62,7 @@ func (w *DocumentWriter) addDocuments(docs []*document.IndexableDocument) error 
 }
 
 func (w *DocumentWriter) flush(sws *segment.SegmentWriteState) error {
-	var bytesWritten int64 = 0
+	var bytesWritten int = 0
 	n, err := w.term.flush(sws)
 	if err != nil {
 		return err

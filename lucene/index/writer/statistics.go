@@ -31,7 +31,7 @@ func (w *StatisticsTermWriter) write(docID int, fieldName string, dataLength int
 	w.fieldsMetadata[fieldName].DocumentCount = len(w.fieldsMetadata[fieldName].DocsLength)
 }
 
-func (w *StatisticsTermWriter) flush(sws *segment.SegmentWriteState) (int64, error) {
+func (w *StatisticsTermWriter) flush(sws *segment.SegmentWriteState) (int, error) {
 	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), segment.STATICS_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)

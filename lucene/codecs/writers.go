@@ -14,6 +14,6 @@ type StoredFieldWriter interface {
 type PostingsWriter interface {
 	Init(termsOut internal.DataOutputStream, sws *segment.SegmentWriteState)
 	Write(term index.Term) BlockTermState
-	EncodeTerm(out internal.DataOutputStream, state BlockTermState)
+	EncodeTerm(out internal.DataOutputStream, state BlockTermState) error
 	Close()
 }

@@ -1,13 +1,17 @@
 package lucene104
 
 import (
+	"bytes"
+
 	"github.com/LjungErik/zetra-lucene/lucene/codecs"
+	"github.com/LjungErik/zetra-lucene/lucene/codecs/lucene104/compression"
 	"github.com/LjungErik/zetra-lucene/lucene/codecs/lucene104/constants"
 	codec_utils "github.com/LjungErik/zetra-lucene/lucene/codecs/utils"
 	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/filenames"
 	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
+	"github.com/LjungErik/zetra-lucene/lucene/internal/stream"
 	"github.com/LjungErik/zetra-lucene/lucene/utils"
 )
 
@@ -19,9 +23,9 @@ const (
 type Lucene104BlockTreeTermsWriter struct {
 	sws              *segment.SegmentWriteState
 	pw               codecs.PostingsWriter
-	termsOut         *internal.OutputStream
-	indexOut         *internal.OutputStream
-	metaOut          *internal.OutputStream
+	termsOut         internal.DataOutputStream
+	indexOut         internal.DataOutputStream
+	metaOut          internal.DataOutputStream
 	minItemsPerBlock int
 	maxItemsPerBlock int
 }
@@ -123,6 +127,11 @@ type termWriter struct {
 	prevTerm     string
 	parent       *Lucene104BlockTreeTermsWriter
 	prefixStarts []int
+
+	statsWriter        *stream.MemBufferDataOutput
+	suffixLengthWriter *stream.MemBufferDataOutput
+	suffixWriter       bytes.Buffer
+	metaWriter         *stream.MemBufferDataOutput
 }
 
 func newTermWriter(parent *Lucene104BlockTreeTermsWriter) *termWriter {
@@ -131,6 +140,9 @@ func newTermWriter(parent *Lucene104BlockTreeTermsWriter) *termWriter {
 		parent:       parent,
 		prevTerm:     "",
 		prefixStarts: make([]int, 8),
+
+		statsWriter:        stream.NewMemBufferDataOutput(),
+		suffixLengthWriter: stream.NewMemBufferDataOutput(),
 	}
 }
 
@@ -219,23 +231,70 @@ func (w *termWriter) writeBlock(
 		return err
 	}
 
+	var statsWriter = NewStatsWriter(w.statsWriter, true)
+
+	// Handle simple case where blocks only contain terms
 	for i := start; i < end; i++ {
 		// Get the suffix for each entry and write to termOut
 		p := w.pending[i]
-		suffixLen := len(p.TermBytes) - prefixLen
 
+		suffixLen := len(p.TermBytes) - prefixLen
+		if err := w.suffixLengthWriter.WriteVInt(suffixLen); err != nil {
+			return err
+		}
+
+		if _, err := w.suffixWriter.Write(p.TermBytes[prefixLen:]); err != nil {
+			return err
+		}
+
+		if err := statsWriter.Add(p.State.DocumentFrequency, p.State.TotalTermFrequency); err != nil {
+			return err
+		}
+
+		if err := w.parent.pw.EncodeTerm(w.metaWriter, p.State); err != nil {
+			return err
+		}
 	}
+
+	if err := statsWriter.Finish(); err != nil {
+		return err
+	}
+
+	var token uint64 = uint64(w.suffixWriter.Len()) << 3
+	token |= 0x04
+	token |= compression.NoCompression
+
+	if err := w.parent.termsOut.WriteVUInt64(token); err != nil {
+		return err
+	}
+
+	if _, err := w.suffixWriter.WriteTo(w.parent.termsOut); err != nil {
+		return nil
+	}
+
+	w.suffixWriter.Reset()
+
+	numSuffixBytes := w.suffixLengthWriter.GetWrittenBytes()
+	// TODO: Improve handling of spareBytes to avoid reallocation every time block is written
+	var spareBytes bytes.Buffer
+	w.suffixLengthWriter.CopyTo(&spareBytes)
+	w.suffixLengthWriter.Reset()
+
+	// TODO: add Ignore all equal check to minimize write
+	w.parent.termsOut.WriteVInt(numSuffixBytes << 1)
+	w.parent.termsOut.Write(spareBytes.Bytes())
+
+	// Write Stats
+	numStatsBytes := w.statsWriter.GetWrittenBytes()
+	w.parent.indexOut.WriteVInt(numStatsBytes)
+	w.statsWriter.CopyTo(w.parent.termsOut)
+	w.statsWriter.Reset()
+
+	// Write Meta data
+	numMetaBytes := w.metaWriter.GetWrittenBytes()
+	w.parent.termsOut.WriteVInt(numMetaBytes)
+	w.metaWriter.CopyTo(w.parent.termsOut)
+	w.metaWriter.Reset()
 
 	return nil
-}
-
-func shortestPrefixLength(prev, first, last string) int {
-	minLen := utils.CommonPrefixLength(first, last) + 1
-	prevLen := utils.CommonPrefixLength(first, prev) + 1
-
-	if prevLen > minLen {
-		return prevLen
-	}
-
-	return minLen
 }

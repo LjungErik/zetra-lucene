@@ -1,5 +1,6 @@
 package codecs
 
 type BlockTermState struct {
-	Metadata interface{}
+	DocumentFrequency  uint32
+	TotalTermFrequency uint64
 }

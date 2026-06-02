@@ -7,7 +7,7 @@ import (
 )
 
 type OutputStream struct {
-	writtenBytes int64
+	writtenBytes int
 	writer       io.WriteCloser
 }
 
@@ -23,12 +23,16 @@ func NewOutputStream(writer io.WriteCloser) *OutputStream {
 
 func (s *OutputStream) Write(p []byte) (int, error) {
 	n, err := s.writer.Write(p)
-	s.writtenBytes += int64(n)
+	s.writtenBytes += n
 	return n, err
 }
 
 func (s *OutputStream) WriteVInt(i int) error {
 	return writeVInt(s, i)
+}
+
+func (s *OutputStream) WriteVUInt64(i uint64) error {
+	return writeVUInt64(s, i)
 }
 
 func (s *OutputStream) WriteByte(b byte) error {
@@ -44,7 +48,7 @@ func (s *OutputStream) Close() error {
 	return s.writer.Close()
 }
 
-func (s *OutputStream) GetWrittenBytes() int64 {
+func (s *OutputStream) GetWrittenBytes() int {
 	return s.writtenBytes
 }
 

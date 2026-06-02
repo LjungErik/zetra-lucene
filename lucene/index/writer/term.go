@@ -34,7 +34,7 @@ func (w *TermWriter) write(docID int, fieldName string, tokens []analysis.Token)
 	}
 }
 
-func (w *TermWriter) flush(sws *segment.SegmentWriteState) (int64, error) {
+func (w *TermWriter) flush(sws *segment.SegmentWriteState) (int, error) {
 	filename := fmt.Sprintf("%s%s", sws.Segments.NextSegmentName(), segment.TERM_FILE_EXTENSION)
 
 	s, err := sws.Directory.OpenOutputStream(filename)

@@ -2,6 +2,7 @@ package stream
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
 )
@@ -12,10 +13,14 @@ type MemBufferDataOutput struct {
 
 var _ internal.DataOutputStream = (*MemBufferDataOutput)(nil)
 
+func NewMemBufferDataOutput() *MemBufferDataOutput {
+	return &MemBufferDataOutput{}
+}
+
 func (m *MemBufferDataOutput) Close() error { return nil }
 
-func (m *MemBufferDataOutput) GetWrittenBytes() int64 {
-	return 0
+func (m *MemBufferDataOutput) GetWrittenBytes() int {
+	return m.buf.Len()
 }
 
 func (m *MemBufferDataOutput) GetCheckSum() uint64 {
@@ -32,7 +37,22 @@ func (m *MemBufferDataOutput) WriteByte(b byte) error {
 	return m.buf.WriteByte(b)
 }
 
-// WriteVInt implements [DataOutputStream].
 func (m *MemBufferDataOutput) WriteVInt(i int) error {
-	panic("unimplemented")
+	return writeVInt(m, i)
+}
+
+func (m *MemBufferDataOutput) WriteVUInt64(i uint64) error {
+	return writeVUInt64(m, i)
+}
+
+func (m *MemBufferDataOutput) CopyTo(w io.Writer) error {
+	if _, err := m.buf.WriteTo(w); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MemBufferDataOutput) Reset() {
+	m.buf.Reset()
 }
