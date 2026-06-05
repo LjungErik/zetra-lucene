@@ -1,11 +1,15 @@
 package segment
 
-import "github.com/LjungErik/zetra-lucene/lucene/index/directory"
+import (
+	"github.com/LjungErik/zetra-lucene/lucene/index/directory"
+	"github.com/LjungErik/zetra-lucene/lucene/index/fields"
+)
 
 type SegmentWriteState struct {
 	Segments      *Segments
 	Directory     directory.Directory
 	segmentSuffix string
+	FieldsInfo    *fields.FieldsInfo
 }
 
 func CreateNewSegmentWriteState(dir directory.Directory) (*SegmentWriteState, error) {
@@ -15,8 +19,9 @@ func CreateNewSegmentWriteState(dir directory.Directory) (*SegmentWriteState, er
 	}
 
 	return &SegmentWriteState{
-		Directory: dir,
-		Segments:  s,
+		Directory:  dir,
+		Segments:   s,
+		FieldsInfo: fields.NewFieldsInfo(),
 	}, nil
 }
 

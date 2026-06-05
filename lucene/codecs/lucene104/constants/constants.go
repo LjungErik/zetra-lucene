@@ -1,18 +1,16 @@
 package constants
 
 const (
-	TermsExtension      = "tim"
-	TermsIndexExtension = "tip"
-	TermsMetaExtension  = "tmd"
+	MetaExtension     = "psm"
+	DocumentExtension = "doc"
+	PosExtension      = "pos"
+	PayExtension      = "pay"
 )
 
 const (
-	TermsCodeName       = "BlockTreeTermsDict"
-	TermsIndexCodecName = "BlockTreeTermsIndex"
-	TermsMetaCodecName  = "BlockTreeTermsMeta"
-)
-
-const (
-	VersionStart   = 0
-	VersionCurrent = VersionStart
+	TermsCodec    = "Lucene104PostingsWriterTerms"
+	MetaCodec     = "Lucene104PostingsWriterMeta"
+	DocumentCodec = "Lucene104PostingsWriterDoc"
+	PosCodec      = "Lucene104PostingsWriterPos"
+	PayCodec      = "Lucene104PostingsWriterPay"
 )

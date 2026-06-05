@@ -3,8 +3,8 @@ package codecs
 import "github.com/LjungErik/zetra-lucene/lucene/index/segment"
 
 type PostingsFormat interface {
-	GetFieldsConsumer(*segment.SegmentWriteState) FieldsConsumer
-	GetFieldsProducer(*segment.SegmentReadState) FieldsProducer
+	GetFieldsConsumer(*segment.SegmentWriteState) (FieldsConsumer, error)
+	GetFieldsProducer(*segment.SegmentReadState) (FieldsProducer, error)
 }
 
 type StoredFieldsFormat interface {
