@@ -37,6 +37,14 @@ func (m *MemBufferDataOutput) WriteByte(b byte) error {
 	return m.buf.WriteByte(b)
 }
 
+func (m *MemBufferDataOutput) WriteInt(i int) error {
+	return writeInt(m, i)
+}
+
+func (m *MemBufferDataOutput) WriteInt64(i int64) error {
+	return writeInt64(m, i)
+}
+
 func (m *MemBufferDataOutput) WriteVInt(i int) error {
 	return writeVInt(m, i)
 }

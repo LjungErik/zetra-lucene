@@ -29,6 +29,11 @@ type Lucene104PostingsWriter struct {
 	docOut  internal.DataOutputStream
 	posOut  internal.DataOutputStream
 	payOut  internal.DataOutputStream
+
+	maxNumImpactsAtLevel0     int
+	maxImpactNumBytesAtLevel0 int
+	maxNumImpactsAtLevel1     int
+	maxImpactNumBytesAtLevel1 int
 }
 
 var _ codecs.PostingsWriter = (*Lucene104PostingsWriter)(nil)
@@ -135,7 +140,41 @@ func NewLucene104PostingsWriter(sws *segment.SegmentWriteState) (*Lucene104Posti
 }
 
 func (w *Lucene104PostingsWriter) Close() error {
-	panic("unimplemented")
+	if err := codec_utils.WriteFooter(w.docOut); err != nil {
+		return err
+	}
+
+	if err := codec_utils.WriteFooter(w.posOut); err != nil {
+		return err
+	}
+
+	if err := codec_utils.WriteFooter(w.payOut); err != nil {
+		return err
+	}
+
+	if err := w.metaOut.WriteInt(w.maxNumImpactsAtLevel0); err != nil {
+		return err
+	}
+
+	if err := w.metaOut.WriteInt(w.maxImpactNumBytesAtLevel0); err != nil {
+		return err
+	}
+
+	if err := w.metaOut.WriteInt(w.maxNumImpactsAtLevel1); err != nil {
+		return err
+	}
+
+	if err := w.metaOut.WriteInt(w.maxImpactNumBytesAtLevel1); err != nil {
+		return err
+	}
+
+	if err := w.metaOut.WriteInt64(int64(w.docOut.GetWrittenBytes())); err != nil {
+		return err
+	}
+
+	// Write file pointer to posOut and file pointer to payOut
+
+	return nil
 }
 
 func (w *Lucene104PostingsWriter) EncodeTerm(out internal.DataOutputStream, state codecs.BlockTermState) error {

@@ -31,6 +31,14 @@ func (s *OutputStream) WriteVInt(i int) error {
 	return writeVInt(s, i)
 }
 
+func (s *OutputStream) WriteInt(i int) error {
+	return writeInt(s, i)
+}
+
+func (s *OutputStream) WriteInt64(i int64) error {
+	return writeInt64(s, i)
+}
+
 func (s *OutputStream) WriteVUInt64(i uint64) error {
 	return writeVUInt64(s, i)
 }

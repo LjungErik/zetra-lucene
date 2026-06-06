@@ -1,6 +1,10 @@
 package stream
 
-import "github.com/LjungErik/zetra-lucene/lucene/internal"
+import (
+	"encoding/binary"
+
+	"github.com/LjungErik/zetra-lucene/lucene/internal"
+)
 
 func writeVInt(s internal.DataOutputStream, i int) error {
 	for (i & ^0x7F) != 0 {
@@ -26,6 +30,22 @@ func writeVUInt64(s internal.DataOutputStream, i uint64) error {
 	}
 
 	if err := s.WriteByte(byte(i)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeInt(s internal.DataOutputStream, i int) error {
+	if err := binary.Write(s, binary.LittleEndian, i); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeInt64(s internal.DataOutputStream, i int64) error {
+	if err := binary.Write(s, binary.LittleEndian, i); err != nil {
 		return err
 	}
 
