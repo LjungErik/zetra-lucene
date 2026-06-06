@@ -5,53 +5,27 @@ import (
 	"io"
 
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
+	"github.com/LjungErik/zetra-lucene/lucene/utils"
 )
 
 type MemBufferDataOutput struct {
-	buf bytes.Buffer
+	internal.DataOutputStream
+	buf *bytes.Buffer
 }
 
 var _ internal.DataOutputStream = (*MemBufferDataOutput)(nil)
 
 func NewMemBufferDataOutput() *MemBufferDataOutput {
-	return &MemBufferDataOutput{}
+	stream := &MemBufferDataOutput{
+		buf: &bytes.Buffer{},
+	}
+
+	stream.DataOutputStream = NewOutputStream(utils.NopWriterCloser(stream.buf))
+
+	return stream
 }
 
 func (m *MemBufferDataOutput) Close() error { return nil }
-
-func (m *MemBufferDataOutput) GetWrittenBytes() uint64 {
-	return uint64(m.buf.Len())
-}
-
-func (m *MemBufferDataOutput) GetCheckSum() uint64 {
-	return 0
-}
-
-// Write implements [DataOutputStream].
-func (m *MemBufferDataOutput) Write(p []byte) (int, error) {
-	return m.buf.Write(p)
-}
-
-// WriteByte implements [DataOutputStream].
-func (m *MemBufferDataOutput) WriteByte(b byte) error {
-	return m.buf.WriteByte(b)
-}
-
-func (m *MemBufferDataOutput) WriteInt(i int) error {
-	return writeInt(m, i)
-}
-
-func (m *MemBufferDataOutput) WriteInt64(i int64) error {
-	return writeInt64(m, i)
-}
-
-func (m *MemBufferDataOutput) WriteVInt(i int) error {
-	return writeVInt(m, i)
-}
-
-func (m *MemBufferDataOutput) WriteVUInt64(i uint64) error {
-	return writeVUInt64(m, i)
-}
 
 func (m *MemBufferDataOutput) CopyTo(w io.Writer) error {
 	if _, err := m.buf.WriteTo(w); err != nil {

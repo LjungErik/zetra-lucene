@@ -28,6 +28,7 @@ func WriteHeader(out internal.DataOutputStream, codec string, version int) error
 }
 
 func WriteIndexHeader(out internal.DataOutputStream, codec string, version int, id []byte, suffix string) error {
+
 	if err := WriteHeader(out, codec, version); err != nil {
 		return err
 	}

@@ -51,3 +51,11 @@ func writeInt64(s internal.DataOutputStream, i int64) error {
 
 	return nil
 }
+
+func writeUInt64(s internal.DataOutputStream, i uint64) error {
+	if err := binary.Write(s, binary.LittleEndian, i); err != nil {
+		return err
+	}
+
+	return nil
+}

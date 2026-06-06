@@ -94,7 +94,9 @@ func NewLucene103BlockTreeTermsWriter(sws *segment.SegmentWriteState, writer cod
 		return nil, err
 	}
 
-	writer.Init(metaOut, sws)
+	if err := writer.Init(metaOut, sws); err != nil {
+		return nil, err
+	}
 
 	return &Lucene103BlockTreeTermsWriter{
 		sws:              sws,
@@ -208,7 +210,7 @@ func newTermWriter(parent *Lucene103BlockTreeTermsWriter) *termWriter {
 }
 
 func (w *termWriter) write(term index.Term) {
-	state := w.parent.pw.Write(term)
+	state := w.parent.pw.WriteTerm(term)
 	w.pushTerm(term.Value())
 
 	entry := PendingEntry{
@@ -290,7 +292,7 @@ func (w *termWriter) finish() error {
 	return nil
 }
 
-func (w *termWriter) writeBlocks(prefixLen, count int) {
+func (w *termWriter) writeBlocks(prefixLen, count int) error {
 	lastSuffixLeadLabel := -1
 
 	start := len(w.pending) - count
@@ -310,15 +312,21 @@ func (w *termWriter) writeBlocks(prefixLen, count int) {
 
 		if suffixLeadLabel != lastSuffixLeadLabel && i > 0 {
 			// Write a block of data
-			w.writeBlock(prefixLen, nextBlockStart, i)
+			if err := w.writeBlock(prefixLen, nextBlockStart, i); err != nil {
+				return err
+			}
 			nextBlockStart = i
 		}
 	}
 
 	if nextBlockStart < count {
 		// Still data left that needs to be written to a block
-		w.writeBlock(prefixLen, nextBlockStart, end)
+		if err := w.writeBlock(prefixLen, nextBlockStart, end); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (w *termWriter) writeBlock(

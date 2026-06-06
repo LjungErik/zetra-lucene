@@ -4,10 +4,10 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/codecs"
 	"github.com/LjungErik/zetra-lucene/lucene/codecs/lucene104/constants"
 	codec_utils "github.com/LjungErik/zetra-lucene/lucene/codecs/utils"
-	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/filenames"
 	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
+	"github.com/LjungErik/zetra-lucene/lucene/internal/stream"
 )
 
 const (
@@ -23,6 +23,8 @@ type Lucene104BlockTermState struct {
 }
 
 type Lucene104PostingsWriter struct {
+	*codecs.BasePostingsWriter
+
 	version int
 
 	metaOut internal.DataOutputStream
@@ -37,11 +39,14 @@ type Lucene104PostingsWriter struct {
 }
 
 var _ codecs.PostingsWriter = (*Lucene104PostingsWriter)(nil)
+var _ codecs.PostingsEncoder = (*Lucene104PostingsWriter)(nil)
 
 func NewLucene104PostingsWriter(sws *segment.SegmentWriteState) (*Lucene104PostingsWriter, error) {
 	w := &Lucene104PostingsWriter{
 		version: VersionCurrent,
 	}
+
+	w.BasePostingsWriter = codecs.NewBasePostingsWriter(w)
 
 	metaFileName := filenames.SegmentFileName(
 		sws.Segments.NextSegmentName(),
@@ -152,24 +157,16 @@ func (w *Lucene104PostingsWriter) Close() error {
 		return err
 	}
 
-	if err := w.metaOut.WriteInt(w.maxNumImpactsAtLevel0); err != nil {
-		return err
-	}
+	metaFFS := stream.NewFailFastStream(w.metaOut)
 
-	if err := w.metaOut.WriteInt(w.maxImpactNumBytesAtLevel0); err != nil {
-		return err
-	}
+	metaFFS.WriteInt(w.maxNumImpactsAtLevel0)
+	metaFFS.WriteInt(w.maxImpactNumBytesAtLevel0)
+	metaFFS.WriteInt(w.maxNumImpactsAtLevel1)
+	metaFFS.WriteInt(w.maxImpactNumBytesAtLevel1)
+	metaFFS.WriteUInt64(w.docOut.GetWrittenBytes())
 
-	if err := w.metaOut.WriteInt(w.maxNumImpactsAtLevel1); err != nil {
-		return err
-	}
-
-	if err := w.metaOut.WriteInt(w.maxImpactNumBytesAtLevel1); err != nil {
-		return err
-	}
-
-	if err := w.metaOut.WriteInt64(int64(w.docOut.GetWrittenBytes())); err != nil {
-		return err
+	if metaFFS.Error() != nil {
+		return metaFFS.Error()
 	}
 
 	// Write file pointer to posOut and file pointer to payOut
@@ -199,6 +196,22 @@ func (w *Lucene104PostingsWriter) Init(termsOut internal.DataOutputStream, sws *
 	return nil
 }
 
-func (w *Lucene104PostingsWriter) Write(term index.Term) codecs.BlockTermState {
+func (w *Lucene104PostingsWriter) StartTerm() {
+	panic("unimplemented")
+}
+
+func (w *Lucene104PostingsWriter) StartDoc(docID int, freq int) {
+	panic("unimplemented")
+}
+
+func (w *Lucene104PostingsWriter) AddPosition(pos int, p []byte) {
+	panic("unimplemented")
+}
+
+func (w *Lucene104PostingsWriter) FinishDoc() {
+	panic("unimplemented")
+}
+
+func (w *Lucene104PostingsWriter) FinishTerm() {
 	panic("unimplemented")
 }
