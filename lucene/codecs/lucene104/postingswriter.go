@@ -1,6 +1,9 @@
 package lucene104
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/LjungErik/zetra-lucene/lucene/codecs"
 	"github.com/LjungErik/zetra-lucene/lucene/codecs/lucene104/constants"
 	codec_utils "github.com/LjungErik/zetra-lucene/lucene/codecs/utils"
@@ -9,6 +12,10 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
 	"github.com/LjungErik/zetra-lucene/lucene/internal/stream"
+)
+
+var (
+	ErrCorruptIndex = errors.New("corrupt index")
 )
 
 const (
@@ -42,6 +49,14 @@ type Lucene104PostingsWriter struct {
 	posStartFP uint64
 	payStartFP uint64
 
+	docBufferUpTo   int
+	docDetlaBuffer  []int
+	frequencyBuffer []int
+
+	currDocID       int
+	lastPosition    int
+	lastStartOffset int
+
 	level1LastPosFP uint64
 	level0LastPosFP uint64
 
@@ -58,7 +73,9 @@ var _ codecs.PostingsEncoder = (*Lucene104PostingsWriter)(nil)
 
 func NewLucene104PostingsWriter(sws *segment.SegmentWriteState) (*Lucene104PostingsWriter, error) {
 	w := &Lucene104PostingsWriter{
-		version: VersionCurrent,
+		version:         VersionCurrent,
+		docDetlaBuffer:  make([]int, BlockSize),
+		frequencyBuffer: make([]int, BlockSize),
 	}
 
 	w.parent = codecs.NewBasePostingsWriter(w)
@@ -236,18 +253,42 @@ func (w *Lucene104PostingsWriter) StartTerm() {
 	// }
 }
 
-func (w *Lucene104PostingsWriter) StartDoc(docID int, freq int) {
-	panic("unimplemented")
+func (w *Lucene104PostingsWriter) StartDoc(docID int, freq int) error {
+	if w.docBufferUpTo == BlockSize {
+		//flushDocBlock(false)
+		w.docBufferUpTo = 0
+	}
+
+	docDelta := docID - w.lastDocID
+
+	if docID < 0 || docDelta <= 0 {
+		return fmt.Errorf("docs out of order (%d <= %d): %w", docID, w.lastDocID, ErrCorruptIndex)
+	}
+
+	w.docDetlaBuffer[w.docBufferUpTo] = docDelta
+	if w.parent.Config.WriteFrequency {
+		w.frequencyBuffer[w.docBufferUpTo] = freq
+	}
+
+	w.currDocID = docID
+	w.lastPosition = 0
+	w.lastStartOffset = 0
+
+	if w.parent.Config.WriteFrequency {
+		// norm and set frequency norm accumulator
+	}
+
+	return nil
 }
 
-func (w *Lucene104PostingsWriter) AddPosition(pos int, p []byte) {
-	panic("unimplemented")
+func (w *Lucene104PostingsWriter) AddPosition(pos int, p []byte) error {
+	return nil
 }
 
 func (w *Lucene104PostingsWriter) FinishDoc() {
 	panic("unimplemented")
 }
 
-func (w *Lucene104PostingsWriter) FinishTerm() {
-	panic("unimplemented")
+func (w *Lucene104PostingsWriter) FinishTerm() error {
+	return nil
 }

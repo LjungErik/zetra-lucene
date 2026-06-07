@@ -2,8 +2,8 @@ package codecs
 
 type PostingsEncoder interface {
 	StartTerm()
-	StartDoc(docID, freq int)
-	AddPosition(pos int, p []byte)
+	StartDoc(docID, freq int) error
+	AddPosition(pos int, p []byte) error
 	FinishDoc()
-	FinishTerm()
+	FinishTerm() error
 }
