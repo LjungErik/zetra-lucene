@@ -42,5 +42,5 @@ func (w *StoredWriter) flush(sws *segment.SegmentWriteState) (uint64, error) {
 		return 0, err
 	}
 
-	return s.GetWrittenBytes(), nil
+	return s.GetFilePointer(), nil
 }

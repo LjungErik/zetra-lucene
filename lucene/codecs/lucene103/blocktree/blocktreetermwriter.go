@@ -150,7 +150,7 @@ func (l *Lucene103BlockTreeTermsWriter) Close() error {
 		return err
 	}
 
-	if err := l.metaOut.WriteVUInt64(l.indexOut.GetWrittenBytes()); err != nil {
+	if err := l.metaOut.WriteVUInt64(l.indexOut.GetFilePointer()); err != nil {
 		return err
 	}
 
@@ -158,7 +158,7 @@ func (l *Lucene103BlockTreeTermsWriter) Close() error {
 		return err
 	}
 
-	if err := l.termsOut.WriteVUInt64(l.termsOut.GetWrittenBytes()); err != nil {
+	if err := l.termsOut.WriteVUInt64(l.termsOut.GetFilePointer()); err != nil {
 		return err
 	}
 
@@ -418,7 +418,7 @@ func (w *termWriter) writeSuffix(compressionAlgo compression.CompressionAlgorith
 }
 
 func (w *termWriter) writeSuffixLength() error {
-	numSuffixBytes := w.suffixLengthWriter.GetWrittenBytes()
+	numSuffixBytes := w.suffixLengthWriter.GetFilePointer()
 	// TODO: Improve handling of spareBytes to avoid reallocation every time block is written
 	var spareBytes bytes.Buffer
 
@@ -441,7 +441,7 @@ func (w *termWriter) writeSuffixLength() error {
 }
 
 func (w *termWriter) writeStats() error {
-	numStatsBytes := w.statsWriter.GetWrittenBytes()
+	numStatsBytes := w.statsWriter.GetFilePointer()
 	if err := w.parent.indexOut.WriteVInt(int(numStatsBytes)); err != nil {
 		return err
 	}
@@ -456,7 +456,7 @@ func (w *termWriter) writeStats() error {
 }
 
 func (w *termWriter) writeMeta() error {
-	numMetaBytes := w.metaWriter.GetWrittenBytes()
+	numMetaBytes := w.metaWriter.GetFilePointer()
 	if err := w.parent.termsOut.WriteVInt(int(numMetaBytes)); err != nil {
 		return err
 	}

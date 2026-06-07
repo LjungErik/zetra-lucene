@@ -45,5 +45,5 @@ func (w *StatisticsTermWriter) flush(sws *segment.SegmentWriteState) (uint64, er
 		return 0, err
 	}
 
-	return s.GetWrittenBytes(), nil
+	return s.GetFilePointer(), nil
 }

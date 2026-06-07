@@ -17,7 +17,7 @@ type DataOutputStream interface {
 	WriteUInt64(i uint64) error
 	WriteVUInt64(i uint64) error
 
-	GetWrittenBytes() uint64
+	GetFilePointer() uint64
 	GetCheckSum() uint64
 }
 

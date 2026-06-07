@@ -18,8 +18,17 @@ type PostingsWriter interface {
 	Close() error
 }
 
+type Config struct {
+	WritePositions bool
+	WritePayloads  bool
+	WriteOffsets   bool
+	WriteFrequency bool
+}
+
 type BasePostingsWriter struct {
 	encoder PostingsEncoder
+
+	Config Config
 }
 
 // Close implements [PostingsWriter].

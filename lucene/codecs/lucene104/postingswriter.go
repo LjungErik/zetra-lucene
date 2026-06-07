@@ -4,6 +4,7 @@ import (
 	"github.com/LjungErik/zetra-lucene/lucene/codecs"
 	"github.com/LjungErik/zetra-lucene/lucene/codecs/lucene104/constants"
 	codec_utils "github.com/LjungErik/zetra-lucene/lucene/codecs/utils"
+	"github.com/LjungErik/zetra-lucene/lucene/index"
 	"github.com/LjungErik/zetra-lucene/lucene/index/filenames"
 	"github.com/LjungErik/zetra-lucene/lucene/index/segment"
 	"github.com/LjungErik/zetra-lucene/lucene/internal"
@@ -23,7 +24,7 @@ type Lucene104BlockTermState struct {
 }
 
 type Lucene104PostingsWriter struct {
-	*codecs.BasePostingsWriter
+	parent *codecs.BasePostingsWriter
 
 	version int
 
@@ -36,6 +37,20 @@ type Lucene104PostingsWriter struct {
 	maxImpactNumBytesAtLevel0 int
 	maxNumImpactsAtLevel1     int
 	maxImpactNumBytesAtLevel1 int
+
+	docStartFP uint64
+	posStartFP uint64
+	payStartFP uint64
+
+	level1LastPosFP uint64
+	level0LastPosFP uint64
+
+	level1LastPayFP uint64
+	level0LastPayFP uint64
+
+	lastDocID       int
+	level1LastDocID int
+	level0LastDocID int
 }
 
 var _ codecs.PostingsWriter = (*Lucene104PostingsWriter)(nil)
@@ -46,7 +61,7 @@ func NewLucene104PostingsWriter(sws *segment.SegmentWriteState) (*Lucene104Posti
 		version: VersionCurrent,
 	}
 
-	w.BasePostingsWriter = codecs.NewBasePostingsWriter(w)
+	w.parent = codecs.NewBasePostingsWriter(w)
 
 	metaFileName := filenames.SegmentFileName(
 		sws.Segments.NextSegmentName(),
@@ -163,7 +178,7 @@ func (w *Lucene104PostingsWriter) Close() error {
 	metaFFS.WriteInt(w.maxImpactNumBytesAtLevel0)
 	metaFFS.WriteInt(w.maxNumImpactsAtLevel1)
 	metaFFS.WriteInt(w.maxImpactNumBytesAtLevel1)
-	metaFFS.WriteUInt64(w.docOut.GetWrittenBytes())
+	metaFFS.WriteUInt64(w.docOut.GetFilePointer())
 
 	if metaFFS.Error() != nil {
 		return metaFFS.Error()
@@ -171,7 +186,11 @@ func (w *Lucene104PostingsWriter) Close() error {
 
 	// Write file pointer to posOut and file pointer to payOut
 
-	return nil
+	return w.parent.Close()
+}
+
+func (w *Lucene104PostingsWriter) WriteTerm(term index.Term) codecs.BlockTermState {
+	return w.parent.WriteTerm(term)
 }
 
 func (w *Lucene104PostingsWriter) EncodeTerm(out internal.DataOutputStream, state codecs.BlockTermState) error {
@@ -193,11 +212,28 @@ func (w *Lucene104PostingsWriter) Init(termsOut internal.DataOutputStream, sws *
 		return err
 	}
 
-	return nil
+	return w.parent.Init(termsOut, sws)
 }
 
 func (w *Lucene104PostingsWriter) StartTerm() {
-	panic("unimplemented")
+	w.docStartFP = w.docOut.GetFilePointer()
+	if w.parent.Config.WritePositions {
+		w.posStartFP = w.posOut.GetFilePointer()
+		w.level1LastPosFP = w.posStartFP
+		w.level0LastPosFP = w.posStartFP
+
+		if w.parent.Config.WritePayloads || w.parent.Config.WriteOffsets {
+			w.payStartFP = w.payOut.GetFilePointer()
+			w.level1LastPayFP = w.payStartFP
+			w.level0LastPayFP = w.payStartFP
+		}
+	}
+	w.lastDocID = -1
+	w.level0LastDocID = -1
+	w.level1LastDocID = -1
+	// if w.parent.Config.WriteFrequency {
+	// 	level0FreqNormAccumulator.Clear()
+	// }
 }
 
 func (w *Lucene104PostingsWriter) StartDoc(docID int, freq int) {

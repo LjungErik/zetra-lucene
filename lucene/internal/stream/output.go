@@ -60,7 +60,7 @@ func (s *OutputStream) Close() error {
 	return s.writer.Close()
 }
 
-func (s *OutputStream) GetWrittenBytes() uint64 {
+func (s *OutputStream) GetFilePointer() uint64 {
 	return s.writtenBytes
 }
 
