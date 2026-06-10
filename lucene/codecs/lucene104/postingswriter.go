@@ -1,6 +1,7 @@
 package lucene104
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -66,6 +67,17 @@ type Lucene104PostingsWriter struct {
 	lastDocID       int
 	level1LastDocID int
 	level0LastDocID int
+
+	posBufferUpTo  int
+	posDeltaBuffer []int
+
+	payloadByteUpTo     int
+	payloadLengthBuffer []int
+
+	payloadBytes bytes.Buffer
+
+	offsetStartDeltaBuffer []int
+	offsetLengthBuffer     []int
 }
 
 var _ codecs.PostingsWriter = (*Lucene104PostingsWriter)(nil)
@@ -281,7 +293,44 @@ func (w *Lucene104PostingsWriter) StartDoc(docID int, freq int) error {
 	return nil
 }
 
-func (w *Lucene104PostingsWriter) AddPosition(pos int, p []byte) error {
+func (w *Lucene104PostingsWriter) AddPosition(pos int, payload []byte) error {
+	if pos > constants.MaxPosition {
+		return fmt.Errorf("position=%d is too large (> MaxPosition=%d): %w", pos, constants.MaxPosition, ErrCorruptIndex)
+	}
+
+	if pos < 0 {
+		return fmt.Errorf("position=%d is < 0: %w", pos, ErrCorruptIndex)
+	}
+
+	w.posDeltaBuffer[w.posBufferUpTo] = pos - w.lastPosition
+	if w.parent.Config.WritePayloads {
+		if len(payload) == 0 {
+			w.posDeltaBuffer[w.posBufferUpTo] = 0
+		} else {
+			w.payloadLengthBuffer[w.posBufferUpTo] = len(payload)
+			n := w.payloadByteUpTo + len(payload)
+			if n > w.payloadBytes.Cap() {
+				w.payloadBytes.Grow(n - w.payloadBytes.Cap())
+			}
+
+			if _, err := w.payloadBytes.Write(payload); err != nil {
+				return err
+			}
+			w.payloadByteUpTo += len(payload)
+		}
+	}
+
+	// if w.parent.Config.WriteOffsets {
+	// 	w.offsetStartDeltaBuffer[w.posBufferUpTo] = startOffset - w.lastStartOffset
+	// 	w.offsetLengthBuffer[w.posBufferUpTo] = endOffset - startOffset
+	// }
+
+	w.posBufferUpTo++
+	w.lastPosition = pos
+	if w.posBufferUpTo == BlockSize {
+
+	}
+
 	return nil
 }
 
