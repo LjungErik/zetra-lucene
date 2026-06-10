@@ -41,7 +41,7 @@ func (f *FailFastStream) WriteInt(i int) {
 		return
 	}
 
-	if err := writeInt(f.stream, i); err != nil {
+	if err := f.stream.WriteInt(i); err != nil {
 		f.err = err
 	}
 }
@@ -51,7 +51,7 @@ func (f *FailFastStream) WriteInt64(i int64) {
 		return
 	}
 
-	if err := writeInt64(f.stream, i); err != nil {
+	if err := f.stream.WriteInt64(i); err != nil {
 		f.err = err
 	}
 }
@@ -61,7 +61,7 @@ func (f *FailFastStream) WriteUInt64(i uint64) {
 		return
 	}
 
-	if err := writeUInt64(f.stream, i); err != nil {
+	if err := f.stream.WriteUInt64(i); err != nil {
 		f.err = err
 	}
 }
@@ -71,7 +71,7 @@ func (f *FailFastStream) WriteVInt(i int) {
 		return
 	}
 
-	if err := writeVInt(f.stream, i); err != nil {
+	if err := f.stream.WriteVInt(i); err != nil {
 		f.err = err
 	}
 }
@@ -81,7 +81,7 @@ func (f *FailFastStream) WriteVUInt64(i uint64) {
 		return
 	}
 
-	if err := writeVUInt64(f.stream, i); err != nil {
+	if err := f.stream.WriteVUInt64(i); err != nil {
 		f.err = err
 	}
 }

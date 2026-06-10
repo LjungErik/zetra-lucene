@@ -21,6 +21,10 @@ func writeVInt(s internal.DataOutputStream, i int) error {
 	return nil
 }
 
+func writeVUInt32(s internal.DataOutputStream, i uint32) error {
+	return writeVInt(s, int(i))
+}
+
 func writeVUInt64(s internal.DataOutputStream, i uint64) error {
 	for (i & ^uint64(0x7F)) != 0 {
 		if err := s.WriteByte(byte((i & 0x7F) | 0x80)); err != nil {
@@ -36,24 +40,8 @@ func writeVUInt64(s internal.DataOutputStream, i uint64) error {
 	return nil
 }
 
-func writeInt(s internal.DataOutputStream, i int) error {
-	if err := binary.Write(s, binary.LittleEndian, i); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func writeInt64(s internal.DataOutputStream, i int64) error {
-	if err := binary.Write(s, binary.LittleEndian, i); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func writeUInt64(s internal.DataOutputStream, i uint64) error {
-	if err := binary.Write(s, binary.LittleEndian, i); err != nil {
+func writeLittleEndian(s internal.DataOutputStream, a any) error {
+	if err := binary.Write(s, binary.LittleEndian, a); err != nil {
 		return err
 	}
 

@@ -3,6 +3,9 @@ package internal
 type DataInputStream interface {
 	Read([]byte) (int, error)
 	Close() error
+
+	ReadByte() (byte, error)
+	ReadUInts(dst []uint32) error
 }
 
 type DataOutputStream interface {
@@ -13,6 +16,8 @@ type DataOutputStream interface {
 
 	WriteVInt(i int) error
 	WriteInt(i int) error
+	WriteVUInt32(i uint32) error
+	WriteUInt32(i uint32) error
 	WriteInt64(i int64) error
 	WriteUInt64(i uint64) error
 	WriteVUInt64(i uint64) error

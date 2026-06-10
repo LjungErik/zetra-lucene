@@ -32,15 +32,23 @@ func (s *OutputStream) WriteVInt(i int) error {
 }
 
 func (s *OutputStream) WriteInt(i int) error {
-	return writeInt(s, i)
+	return writeLittleEndian(s, i)
+}
+
+func (s *OutputStream) WriteVUInt32(i uint32) error {
+	return writeVUInt32(s, i)
+}
+
+func (s *OutputStream) WriteUInt32(i uint32) error {
+	return writeLittleEndian(s, i)
 }
 
 func (s *OutputStream) WriteInt64(i int64) error {
-	return writeInt64(s, i)
+	return writeLittleEndian(s, i)
 }
 
 func (s *OutputStream) WriteUInt64(i uint64) error {
-	return writeUInt64(s, i)
+	return writeLittleEndian(s, i)
 }
 
 func (s *OutputStream) WriteVUInt64(i uint64) error {
